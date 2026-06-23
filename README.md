@@ -1,4 +1,4 @@
-# Pusaka Siber (Cyber Security Asset Management System)
+# Pusaka Siber (Cyber Asset Management Platform)
 
 **Pusaka Siber** adalah aplikasi manajemen aset dan pelacakan peminjaman barang yang dirancang khusus untuk mencatat aset-aset di lingkungan Divisi Cyber Security serta mendokumentasikan peminjaman barang atau perangkat yang digunakan personel secara teratur, aman, dan efisien.
 
