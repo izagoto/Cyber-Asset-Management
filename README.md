@@ -1,17 +1,27 @@
 # CyberSec AMS (Cyber Asset Management & Tracking System)
 
-**CyberSec AMS** adalah sistem manajemen dan pelacakan aset fisik digital yang dirancang khusus untuk kebutuhan akuntabilitas dan keamanan tinggi di dalam lingkungan Divisi Cyber Security. Sistem ini membantu melacak aset fisik (seperti perangkat keras uji, dongle keamanan, laptop riset, perangkat server taktis, dll.) menggunakan integrasi QR Code, pelacakan Geolocation otomatis, dan Log Audit yang tidak dapat diubah (*immutable*).
+**CyberSec AMS** adalah sistem manajemen dan pelacakan aset fisik digital yang dirancang khusus untuk kebutuhan akuntabilitas dan keamanan tinggi di dalam lingkungan Divisi Cyber Security. Sistem ini membantu melacak aset fisik (seperti perangkat keras uji, dongle keamanan, laptop riset, perangkat server taktis, dll.) secara teratur, aman, dan efisien.
 
 ---
 
-## 🚀 Fitur Utama
+## 🚀 Fitur Utama (Implemented)
 
-1. **Manajemen Inventaris Aset**: CRUD Aset lengkap (hanya untuk Admin) dengan status dinamis (`AVAILABLE`, `BORROWED`, `MAINTENANCE`, `LOST`).
-2. **Pembangkitan & Pemindaian QR Code**: Setiap aset memiliki kode QR unik. Peminjaman (*check-out*) dan pengembalian (*check-in*) dilakukan secara cepat melalui pemindaian QR menggunakan kamera browser.
-3. **Pelacakan Georeferensi (GPS Tracking)**: Perekaman titik koordinat GPS otomatis (latitude & longitude) menggunakan HTML5 Geolocation API saat aktivasi peminjaman dan pengembalian aset.
-4. **Visualisasi Peta Aset**: Admin dapat memantau sebaran geografis lokasi fisik terakhir dari seluruh aset yang dipinjam di luar laboratorium utama pada peta interaktif.
-5. **Immutable Audit Trails**: Pencatatan aktivitas sensitif (seperti kegagalan login, modifikasi aset, perubahan persetujuan) yang bersifat *append-only* (tidak dapat diubah atau dihapus) untuk kebutuhan investigasi kepatuhan (*compliance*).
-6. **Deteksi & Peringatan Terlambat (Overdue)**: Otomatisasi pendeteksian aset yang terlambat dikembalikan dengan visualisasi kartu peringatan darurat pada dashboard Admin.
+1. **Manajemen Inventaris Aset**: CRUD Aset lengkap (Admin) dengan data kategori, deskripsi, nomor seri unik, status dinamis (`AVAILABLE`, `BORROWED`, `MAINTENANCE`, `LOST`), serta ekspor data ke file CSV.
+2. **Manajemen Pengguna (User Management)**: CRUD data pengguna (Admin/Borrower) untuk Role-Based Access Control lengkap dengan informasi divisi kerja, email, password terenkripsi, dan kontak telepon.
+3. **Dashboard Real-time & KPI**: Tampilan ringkasan statistik aset (total aset, peminjaman aktif, antrean persetujuan, overdue) beserta diagram persentase status aset dalam bentuk progress bar modern.
+4. **Alur Pengajuan Peminjaman Interaktif**: Wizard multi-step (3 langkah) interaktif untuk memudahkan pengisian data peminjam, pemilihan perangkat yang tersedia, tanggal pinjam & kembali (dilengkapi *custom date picker*), dan review sebelum submit.
+5. **Persetujuan & Pengembalian Aset (Admin Board)**: Antrean persetujuan (Approval Queue) bagi Admin untuk memproses pengajuan peminjaman (Approve/Reject), serta tabel peminjaman aktif untuk mencatat pengembalian (*Check-In*) secara instan.
+6. **Deteksi & Peringatan Terlambat (Overdue)**: Otomatisasi pendeteksian aset yang terlambat dikembalikan dengan visualisasi kartu peringatan merah menyala pada dashboard Admin.
+7. **Sistem Pencarian & Filter Kustom (Premium UI)**: Komponen *custom dropdown* interaktif dengan filter kategori checkbox, kustomisasi jumlah baris data per halaman (entries limit), dan pencarian instan pada tabel aset, user, dan peminjaman.
+
+---
+
+## 🗺️ Rencana Pengembangan (Roadmap Future Phase)
+
+1. **Integrasi & Pemindaian QR Code**: Setiap aset memiliki kode QR unik yang dapat dipindai menggunakan kamera perangkat via browser untuk mempermudah proses check-in/check-out.
+2. **Pelacakan Georeferensi (GPS Tracking)**: Perekaman titik koordinat GPS otomatis (latitude & longitude) menggunakan HTML5 Geolocation API saat aktivasi peminjaman dan pengembalian aset.
+3. **Visualisasi Peta Aset**: Admin dapat memantau sebaran geografis lokasi fisik terakhir dari seluruh aset yang dipinjam di luar laboratorium utama pada peta interaktif Leaflet.
+4. **Immutable Audit Trails**: Pencatatan aktivitas sensitif (seperti kegagalan login, modifikasi aset, perubahan persetujuan) yang bersifat *append-only* (tidak dapat diubah atau dihapus) untuk kebutuhan investigasi kepatuhan (*compliance*).
 
 ---
 
@@ -28,11 +38,13 @@ Sistem ini menggunakan arsitektur **Client-Server** dengan pembagian teknologi b
 * **Migrasi Database**: Alembic.
 
 ### Frontend
-* **Core**: React (TypeScript) dengan bundler **Vite**.
-* **UI & Styling**: Vanilla CSS, Tailwind CSS, & Mantine Core.
-* **QR Scanner**: HTML5 QR Code Reader (`html5-qrcode`).
-* **Visualisasi Peta**: Leaflet / React Leaflet (OpenStreetMap).
-* **Grafik & Chart**: Recharts.
+* **Core**: React 19 (TypeScript) dengan bundler **Vite 8**.
+* **UI & Styling**: Vanilla CSS & Tailwind CSS (v4) untuk desain antarmuka modern, gelap/terang terpadu.
+* **Library UI**: Mantine Core (Hooks & Form Helpers), Lucide React (Icons).
+* **Dependensi Terintegrasi (Siap Integrasi)**:
+  * `html5-qrcode` (Pembaca QR Code via kamera)
+  * `leaflet` / `react-leaflet` (Visualisasi Peta)
+  * `recharts` (Visualisasi Data & Grafik)
 
 ---
 
