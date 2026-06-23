@@ -49,7 +49,7 @@ function Sidebar({ isAdmin, pendingCount, isOpen, onToggle }: { isAdmin: boolean
 
       {/* Logo */}
       <div className="h-16 border-b border-[#27272A] flex items-center justify-center overflow-hidden">
-        <div className="text-xl font-bold font-mono tracking-tight whitespace-nowrap">
+        <div className="text-base font-bold font-mono tracking-tight whitespace-nowrap">
           {isOpen ? (
             <><span className="text-[#DC2626]">Inventaris</span> <span className="text-white">Siber</span></>
           ) : (
@@ -114,7 +114,18 @@ export function Layout() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pendingCount, setPendingCount] = useState(0);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('sidebarOpen');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => {
+      const newState = !prev;
+      localStorage.setItem('sidebarOpen', String(newState));
+      return newState;
+    });
+  };
 
   useEffect(() => {
     const fetchPendingCount = async () => {
@@ -160,7 +171,7 @@ export function Layout() {
       className="flex h-screen overflow-hidden"
       style={{ fontFamily: "'Inter', sans-serif", background: "#F4F4F5", color: "#18181B" }}
     >
-      <Sidebar isAdmin={isAdmin} pendingCount={pendingCount} isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <Sidebar isAdmin={isAdmin} pendingCount={pendingCount} isOpen={isSidebarOpen} onToggle={toggleSidebar} />
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Top header */}
