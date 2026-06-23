@@ -18,10 +18,9 @@
 
 ## 🗺️ Rencana Pengembangan (Roadmap Future Phase)
 
-1. **Integrasi & Pemindaian QR Code**: Setiap aset memiliki kode QR unik yang dapat dipindai menggunakan kamera perangkat via browser untuk mempermudah proses check-in/check-out.
-2. **Pelacakan Georeferensi (GPS Tracking)**: Perekaman titik koordinat GPS otomatis (latitude & longitude) menggunakan HTML5 Geolocation API saat aktivasi peminjaman dan pengembalian aset.
-3. **Visualisasi Peta Aset**: Admin dapat memantau sebaran geografis lokasi fisik terakhir dari seluruh aset yang dipinjam di luar laboratorium utama pada peta interaktif Leaflet.
-4. **Immutable Audit Trails**: Pencatatan aktivitas sensitif (seperti kegagalan login, modifikasi aset, perubahan persetujuan) yang bersifat *append-only* (tidak dapat diubah atau dihapus) untuk kebutuhan investigasi kepatuhan (*compliance*).
+1. **Pelacakan Georeferensi (GPS Tracking)**: Perekaman titik koordinat GPS otomatis (latitude & longitude) menggunakan HTML5 Geolocation API saat aktivasi peminjaman dan pengembalian aset.
+2. **Visualisasi Peta Aset**: Admin dapat memantau sebaran geografis lokasi fisik terakhir dari seluruh aset yang dipinjam di luar laboratorium utama pada peta interaktif Leaflet.
+3. **Immutable Audit Trails**: Pencatatan aktivitas sensitif (seperti kegagalan login, modifikasi aset, perubahan persetujuan) yang bersifat *append-only* (tidak dapat diubah atau dihapus) untuk kebutuhan investigasi kepatuhan (*compliance*).
 
 ---
 
@@ -42,7 +41,6 @@ Sistem ini menggunakan arsitektur **Client-Server** dengan pembagian teknologi b
 * **UI & Styling**: Vanilla CSS & Tailwind CSS (v4) untuk desain antarmuka modern, gelap/terang terpadu.
 * **Library UI**: Mantine Core (Hooks & Form Helpers), Lucide React (Icons).
 * **Dependensi Terintegrasi (Siap Integrasi)**:
-  * `html5-qrcode` (Pembaca QR Code via kamera)
   * `leaflet` / `react-leaflet` (Visualisasi Peta)
   * `recharts` (Visualisasi Data & Grafik)
 
