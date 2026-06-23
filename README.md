@@ -1,6 +1,6 @@
 # CyberSec AMS (Cyber Asset Management & Tracking System)
 
-**CyberSec AMS** adalah sistem manajemen dan pelacakan aset fisik digital yang dirancang khusus untuk kebutuhan akuntabilitas dan keamanan tinggi di dalam lingkungan Divisi Cyber Security. Sistem ini membantu melacak aset fisik (seperti perangkat keras uji, dongle keamanan, laptop riset, perangkat server taktis, dll.) secara teratur, aman, dan efisien.
+**CyberSec AMS** adalah aplikasi manajemen aset dan pelacakan peminjaman barang yang dirancang khusus untuk mencatat aset-aset di lingkungan Divisi Cyber Security serta mendokumentasikan peminjaman barang atau perangkat yang digunakan personel secara teratur, aman, dan efisien.
 
 ---
 
