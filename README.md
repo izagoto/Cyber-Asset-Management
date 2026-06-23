@@ -16,14 +16,6 @@
 
 ---
 
-## 🗺️ Rencana Pengembangan (Roadmap Future Phase)
-
-1. **Pelacakan Georeferensi (GPS Tracking)**: Perekaman titik koordinat GPS otomatis (latitude & longitude) menggunakan HTML5 Geolocation API saat aktivasi peminjaman dan pengembalian aset.
-2. **Visualisasi Peta Aset**: Admin dapat memantau sebaran geografis lokasi fisik terakhir dari seluruh aset yang dipinjam di luar laboratorium utama pada peta interaktif Leaflet.
-3. **Immutable Audit Trails**: Pencatatan aktivitas sensitif (seperti kegagalan login, modifikasi aset, perubahan persetujuan) yang bersifat *append-only* (tidak dapat diubah atau dihapus) untuk kebutuhan investigasi kepatuhan (*compliance*).
-
----
-
 ## 🛠️ Tech Stack & Arsitektur
 
 Sistem ini menggunakan arsitektur **Client-Server** dengan pembagian teknologi berikut:
@@ -40,9 +32,6 @@ Sistem ini menggunakan arsitektur **Client-Server** dengan pembagian teknologi b
 * **Core**: React 19 (TypeScript) dengan bundler **Vite 8**.
 * **UI & Styling**: Vanilla CSS & Tailwind CSS (v4) untuk desain antarmuka modern, gelap/terang terpadu.
 * **Library UI**: Mantine Core (Hooks & Form Helpers), Lucide React (Icons).
-* **Dependensi Terintegrasi (Siap Integrasi)**:
-  * `leaflet` / `react-leaflet` (Visualisasi Peta)
-  * `recharts` (Visualisasi Data & Grafik)
 
 ---
 
