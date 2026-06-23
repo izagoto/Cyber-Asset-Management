@@ -85,9 +85,9 @@ export function Login() {
 
           <div className="flex flex-col relative z-10">
             <h1 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight whitespace-nowrap">
-              <span className="text-[#DC2626]">Pusaka</span> <span className="text-white">Siber</span>
+              <span className="text-[#DC2626]">Inventaris</span> <span className="text-white">Siber</span>
             </h1>
-            <p className="text-[#A1A1AA] text-xs font-medium tracking-[0.2em] uppercase mt-1 whitespace-nowrap">Cyber Asset Management Platform</p>
+            <p className="text-[#A1A1AA] text-[10px] font-medium tracking-[0.2em] uppercase mt-1 whitespace-nowrap">Cyber Asset Management Platform</p>
             
             <div className="h-[3px] w-16 bg-linear-to-r from-[#DC2626] to-[#B91C1C] mt-10 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.5)]" />
           </div>

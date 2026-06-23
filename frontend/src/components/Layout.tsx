@@ -51,9 +51,9 @@ function Sidebar({ isAdmin, pendingCount, isOpen, onToggle }: { isAdmin: boolean
       <div className="h-16 border-b border-[#27272A] flex items-center justify-center overflow-hidden">
         <div className="text-xl font-bold font-mono tracking-tight whitespace-nowrap">
           {isOpen ? (
-            <><span className="text-[#DC2626]">Pusaka</span> <span className="text-white">Siber</span></>
+            <><span className="text-[#DC2626]">Inventaris</span> <span className="text-white">Siber</span></>
           ) : (
-            <span className="text-[#DC2626]">P<span className="text-white">S</span></span>
+            <span className="text-[#DC2626]">I<span className="text-white">S</span></span>
           )}
         </div>
       </div>
@@ -169,7 +169,7 @@ export function Layout() {
         >
           {/* Breadcrumb */}
           <div className="flex items-center gap-3">
-            <span className="text-lg font-medium hidden sm:inline"><span className="text-[#DC2626]">Pusaka</span> <span className="text-[#71717A]">Siber</span></span>
+            <span className="text-lg font-medium hidden sm:inline"><span className="text-[#DC2626]">Inventaris</span> <span className="text-[#71717A]">Siber</span></span>
             <span className="text-base text-[#A1A1AA] hidden sm:inline">© 2026</span>
             <ChevronRight size={18} className="text-[#DC2626] hidden sm:inline" />
             <div className="text-lg font-bold text-[#18181B]">{pageTitle}</div>
