@@ -1,0 +1,53 @@
+# --- OS Metadata ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Python / Backend ---
+backend/.venv/
+backend/venv/
+backend/env/
+backend/ENV/
+backend/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/**/*.pyd
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.pyre/
+backend/.pyrefly/
+backend/.ruff_cache/
+
+# SQLite databases & local DB state
+backend/*.db
+backend/*.db-journal
+backend/*.sqlite3
+backend/asset_tracking.db
+
+# Backend Environment variables
+backend/.env
+
+# --- Node.js / Frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/.env.local
+frontend/.eslintcache
+
+# --- IDE / Editor configs ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo

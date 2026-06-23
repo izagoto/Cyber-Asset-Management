@@ -1,0 +1,31 @@
+from app.core.database import SessionLocal, engine, Base
+from app.models.user import User
+from app.core.security import hash_password
+
+def seed_database():
+    # Drop and recreate tables to apply schema extensions
+    print("Recreating database tables...")
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
+
+    # 1. Create Users
+    print("Seeding users...")
+    hashed_pass = hash_password("bond123!")
+
+    admin = User(
+        email="cyber@local.com",
+        fullname="James Bond",
+        password_hash=hashed_pass,
+        role="ADMIN",
+        division="Cyber Security Researcher",
+        phone="+62 811-2222-3333"
+    )
+
+    db.add(admin)
+    db.commit()
+    print("Database seeding completed successfully.")
+
+if __name__ == "__main__":
+    seed_database()
