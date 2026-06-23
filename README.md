@@ -128,3 +128,15 @@ Pastikan Anda memiliki hal-hal berikut terinstal di sistem Anda:
 4. **Akses Aplikasi**:
    Buka browser dan buka alamat: `http://localhost:5173`
 
+---
+
+## 🔮 Rencana Pengembangan Mendatang (Future Enhancements)
+
+Untuk menjadikan aplikasi ini sebagai *Enterprise Asset Management* berskala penuh, berikut adalah peta jalan (roadmap) fitur yang direncanakan untuk pengembangan selanjutnya:
+
+1. **Sistem QR Code / Barcode Scanner**: Pembuatan otomatis QR Code (misal: AST-001) untuk ditempel pada aset fisik, serta fitur *scan* kamera untuk *Check-In/Check-Out* instan.
+2. **Portal Khusus Peminjam (Non-Admin View)**: Dashboard terdedikasi untuk karyawan biasa agar dapat melacak daftar barang yang sedang mereka pinjam, melihat tanggal jatuh tempo, dan melakukan *request* perpanjangan waktu.
+3. **Log Audit Keamanan Global (Audit Trail)**: Pencatatan otomatis setiap tindakan sensitif (seperti penghapusan aset atau perubahan *password*) untuk memenuhi standar kepatuhan keamanan seperti ISO 27001.
+4. **Pelacakan Servis & Pemeliharaan (Maintenance Lifecycle)**: Modul untuk mencatat riwayat perbaikan aset, vendor servis, biaya, dan estimasi waktu selesai saat aset berstatus `MAINTENANCE`.
+5. **Notifikasi Email Otomatis**: Integrasi SMTP/SendGrid untuk mengirimkan peringatan otomatis ke peminjam ketika barang terlambat (*Overdue*) atau saat pengajuan disetujui.
+6. **Pelacakan Garansi & Depresiasi**: Pencatatan tanggal pembelian dan batas akhir garansi dengan sistem peringatan dini sebelum garansi aset habis.

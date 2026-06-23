@@ -10,10 +10,10 @@ def seed_database():
     db = SessionLocal()
     
     print("Seeding users...")
-    hashed_pass = hash_password("bond123!")
+    hashed_pass = hash_password("jbond123!")
 
     admin = User(
-        email="cyber@local.com",
+        email="cybersecurity@local.com",
         fullname="James Bond",
         password_hash=hashed_pass,
         role="ADMIN",

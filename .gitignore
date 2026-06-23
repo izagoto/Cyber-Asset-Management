@@ -27,6 +27,7 @@ backend/*.db
 backend/*.db-journal
 backend/*.sqlite3
 backend/asset_tracking.db
+backend/database/
 
 # Backend Environment variables
 backend/.env
