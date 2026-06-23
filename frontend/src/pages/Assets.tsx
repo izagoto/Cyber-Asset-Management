@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Download, Edit2, Trash2, X, 
-  Search, ChevronLeft, ChevronRight, SlidersHorizontal 
+  Search, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import type { Asset } from '../types';
+import { CustomSelect, CustomMultiSelect } from '../components/CustomDropdown';
 
 function StatusBadge({ status }: { status: string }) {
   const cfg: Record<string, string> = {
@@ -37,7 +38,7 @@ export function Assets() {
   
   // Filtering & Search states
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('available');
 
   // Pagination states
@@ -51,10 +52,18 @@ export function Assets() {
   const [newDescription, setNewDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const filterInitializedRef = useRef(false);
+
   const fetchAssets = async () => {
     try {
       const res = await api.get('/assets');
-      setAssets(res.data.data ?? []);
+      const data = res.data.data ?? [];
+      setAssets(data);
+      if (!filterInitializedRef.current && data.length > 0) {
+        const uniqueCats = Array.from(new Set(data.map((a: Asset) => a.category || 'Uncategorized'))).sort() as string[];
+        setSelectedCategories(uniqueCats);
+        filterInitializedRef.current = true;
+      }
     } catch (err) {
       console.error("Failed to fetch assets", err);
     } finally {
@@ -67,7 +76,7 @@ export function Assets() {
   }, []);
 
   // Extract dynamic categories list from seeded data
-  const categories = ["all", ...Array.from(new Set(assets.map(a => a.category).filter(Boolean)))];
+  const categories = Array.from(new Set(assets.map(a => a.category || 'Uncategorized'))).sort();
 
   // Filtering Logic
   const filtered = assets.filter((asset) => {
@@ -82,7 +91,8 @@ export function Assets() {
       matchesStatus = asset.status === 'LOST';
     }
 
-    const matchesCategory = categoryFilter === 'all' || asset.category === categoryFilter;
+    const assetCategory = asset.category || 'Uncategorized';
+    const matchesCategory = selectedCategories.includes(assetCategory);
     const matchesSearch = 
       asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       asset.id.toString().includes(searchQuery) ||
@@ -223,18 +233,19 @@ export function Assets() {
           {/* Entries dropdown selector */}
           <div className="flex items-center gap-2 text-xs font-mono text-[#52525B]">
             <span>Show</span>
-            <select
+            <CustomSelect
               value={entriesPerPage}
-              onChange={(e) => {
-                setEntriesPerPage(Number(e.target.value));
+              onChange={(size) => {
+                setEntriesPerPage(size);
                 setCurrentPage(1);
               }}
-              className="bg-white border border-[#E4E4E7] rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-[#18181B] focus:outline-none focus:border-[#DC2626] cursor-pointer"
-            >
-              {[5, 10, 20, 50].map((size) => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
+              options={[
+                { value: 5, label: 5 },
+                { value: 10, label: 10 },
+                { value: 20, label: 20 },
+                { value: 50, label: 50 }
+              ]}
+            />
             <span>entries</span>
           </div>
 
@@ -263,23 +274,15 @@ export function Assets() {
               )}
             </div>
 
-            {/* Category Select Filter */}
-            <div className="flex items-center gap-1.5">
-              <SlidersHorizontal size={12} className="text-[#71717A]" />
-              <select
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-white border border-[#E4E4E7] rounded-lg px-3 py-1.5 text-xs font-mono text-[#52525B] focus:outline-none focus:border-[#DC2626] cursor-pointer"
-              >
-                <option value="all">All Categories</option>
-                {categories.filter(cat => cat !== 'all').map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+            {/* Category Custom Multi-Select Filter */}
+            <CustomMultiSelect
+              selectedValues={selectedCategories}
+              onChange={(vals) => {
+                setSelectedCategories(vals);
+                setCurrentPage(1);
+              }}
+              options={categories}
+            />
           </div>
         </div>
 
@@ -410,15 +413,15 @@ export function Assets() {
       {/* Add Asset Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <form onSubmit={handleSaveAsset} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E7]">
+          <form onSubmit={handleSaveAsset} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-linear-to-r from-[#DC2626] to-[#B91C1C] text-white">
               <div>
-                <div className="text-sm font-mono font-bold text-[#18181B]">Add New Asset</div>
+                <div className="text-sm font-mono font-bold">Add New Asset</div>
               </div>
               <button 
                 type="button"
                 onClick={() => setShowModal(false)} 
-                className="text-[#71717A] hover:text-[#18181B] transition-colors p-1"
+                className="text-white/80 hover:text-white hover:bg-white/10 rounded transition-all p-1"
               >
                 <X size={15} />
               </button>
@@ -429,7 +432,7 @@ export function Assets() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. MacBook Pro 16\"
+                  placeholder='e.g. MacBook Pro 16"'
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
@@ -466,18 +469,18 @@ export function Assets() {
                 />
               </div>
             </div>
-            <div className="flex gap-3 px-6 pb-6">
+            <div className="flex gap-3 px-6 py-4 bg-[#FAFAFA] border-t border-[#E4E4E7]">
               <button 
                 type="button"
                 onClick={() => setShowModal(false)} 
-                className="flex-1 py-2.5 bg-[#FFFFFF] hover:bg-[#FAFAFA] border border-[#E4E4E7] text-[#71717A] text-xs font-mono font-semibold rounded-lg transition-all"
+                className="flex-1 py-2.5 bg-[#FFFFFF] hover:bg-[#FAFAFA] border border-[#E4E4E7] text-[#71717A] text-xs font-mono font-semibold rounded-lg transition-all cursor-pointer shadow-xs"
               >
                 Cancel
               </button>
               <button 
                 type="submit"
                 disabled={submitting || !newName.trim()}
-                className="flex-1 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-semibold rounded-lg transition-all shadow-sm disabled:opacity-50"
+                className="flex-1 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-semibold rounded-lg transition-all shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? 'Saving...' : 'Save Asset'}
               </button>

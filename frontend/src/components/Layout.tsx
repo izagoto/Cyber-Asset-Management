@@ -19,6 +19,12 @@ const navGroups = [
       { id: "assets", path: "/assets", label: "Asset Inventory", icon: Package, adminOnly: true },
       { id: "loans", path: "/loans", label: "Loan Tracking", icon: ArrowLeftRight, adminOnly: false },
     ]
+  },
+  {
+    title: "Administration",
+    items: [
+      { id: "users", path: "/users", label: "User Management", icon: Settings, adminOnly: true },
+    ]
   }
 ];
 
@@ -35,7 +41,7 @@ function Sidebar({ isAdmin, pendingCount }: { isAdmin: boolean; pendingCount: nu
   return (
     <aside className="w-[240px] min-h-screen bg-[#18181B] flex flex-col shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.1)] relative">
       {/* Logo */}
-      <div className="px-5 h-16 border-b border-[#27272A] flex flex-col justify-center">
+      <div className="h-16 border-b border-[#27272A] flex items-center justify-center">
         <div className="text-lg font-bold text-[#FAFAFA] tracking-tight leading-none">
           CyberSec <span className="text-[#DC2626] font-medium">AMS</span>
         </div>
@@ -181,16 +187,7 @@ export function Layout() {
                     <div className="text-sm font-bold text-[#18181B] truncate">{user?.fullname || 'User'}</div>
                     <div className="text-[10px] text-[#71717A] uppercase tracking-wider font-bold mt-0.5">{user?.role || 'ADMIN'}</div>
                   </div>
-                  {isAdmin && (
-                    <Link
-                      to="/users"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-xs text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#18181B] transition-colors"
-                    >
-                      <Settings size={14} />
-                      User Management
-                    </Link>
-                  )}
+
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-[#DC2626] hover:bg-[#FEF2F2] transition-colors text-left"
