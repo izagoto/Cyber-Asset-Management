@@ -3,14 +3,12 @@ from app.models.user import User
 from app.core.security import hash_password
 
 def seed_database():
-    # Drop and recreate tables to apply schema extensions
     print("Recreating database tables...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
-
-    # 1. Create Users
+    
     print("Seeding users...")
     hashed_pass = hash_password("bond123!")
 

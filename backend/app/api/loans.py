@@ -29,7 +29,7 @@ def get_loans(
     current_user: User = Depends(get_current_user)
 ):
     """Get loans (Admin gets all, regular user gets their own)"""
-    if current_user.role == "ADMIN":
+    if current_user.role in ["ADMIN", "SUPERVISOR"]:
         loans = LoanService.get_all_loans(db)
     else:
         loans = LoanService.get_user_loans(db, current_user.id)
@@ -47,7 +47,7 @@ def get_my_loans(
 @router.get("/all", response_model=StandardResponse[List[LoanResponse]])
 def get_all_loans(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
 ):
     """Get all loans (Admin only)"""
     loans = LoanService.get_all_loans(db)
@@ -76,32 +76,37 @@ def update_loan_status(
     
     # Enforce RBAC
     if status_val in ["ACTIVE", "REJECTED"]:
-        if current_user.role != "ADMIN":
-            raise HTTPException(status_code=403, detail="Only admins can activate or reject loans")
+        if current_user.role not in ["ADMIN", "SUPERVISOR"]:
+            raise HTTPException(status_code=403, detail="Forbidden")
     elif status_val == "RETURNED":
-        if current_user.role != "ADMIN" and loan.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="You can only return your own loans")
+        if current_user.role not in ["ADMIN", "SUPERVISOR"] and loan.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Forbidden")
     else:
         raise HTTPException(status_code=400, detail="Invalid status update")
         
     if status_val == "ACTIVE":
         loan.status = LoanStatus.ACTIVE.value
         loan.approved_at = datetime.now(timezone.utc)
-        # Mark asset as BORROWED
+        # Check if asset should be marked as BORROWED
         asset = db.query(Asset).filter(Asset.id == loan.asset_id).first()
         if asset:
-            asset.status = AssetStatus.BORROWED.value
-            db.add(asset)
+            # Refresh to ensure we calculate available_quantity correctly with the new loan state
+            db.commit()
+            db.refresh(asset)
+            if asset.available_quantity <= 0:
+                asset.status = AssetStatus.BORROWED.value
+                db.add(asset)
     elif status_val == "REJECTED":
         loan.status = LoanStatus.REJECTED.value
     elif status_val == "RETURNED":
         loan.status = LoanStatus.RETURNED.value
         loan.returned_at = datetime.now(timezone.utc)
-        # Mark asset as AVAILABLE
+        # Mark asset as AVAILABLE since at least some quantity was returned
         asset = db.query(Asset).filter(Asset.id == loan.asset_id).first()
         if asset:
-            asset.status = AssetStatus.AVAILABLE.value
-            db.add(asset)
+            if asset.status == AssetStatus.BORROWED.value:
+                asset.status = AssetStatus.AVAILABLE.value
+                db.add(asset)
         
     db.add(loan)
     db.commit()
@@ -112,7 +117,7 @@ def update_loan_status(
 def approve_loan(
     loan_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
 ):
     """Approve a loan request (Admin only)"""
     loan = LoanService.approve_loan(db, loan_id, current_user.id)

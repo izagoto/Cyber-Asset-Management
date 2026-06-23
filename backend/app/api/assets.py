@@ -17,7 +17,7 @@ def get_assets(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
 ):
     """Get all assets (Admin only)"""
     assets = AssetService.get_all(db, skip=skip, limit=limit)
@@ -27,7 +27,7 @@ def get_assets(
 def create_asset(
     asset_in: AssetCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
 ):
     """Create a new asset (Admin only)"""
     asset = AssetService.create(db, asset_in, cast(int, current_user.id))
@@ -37,7 +37,7 @@ def create_asset(
 def get_asset(
     asset_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
 ):
     """Get a specific asset (Admin only)"""
     asset = AssetService.get_by_id(db, asset_id)
@@ -50,7 +50,7 @@ def update_asset(
     asset_id: int,
     asset_in: AssetUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("ADMIN"))
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
 ):
     """Update an asset (Admin only)"""
     asset = AssetService.update(db, asset_id, asset_in, cast(int, current_user.id))

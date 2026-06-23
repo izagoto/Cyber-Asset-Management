@@ -14,15 +14,25 @@ class LoanService:
         if not asset:
             raise HTTPException(status_code=404, detail="Asset not found")
             
-        if asset.status != AssetStatus.AVAILABLE.value:
-            raise HTTPException(status_code=400, detail=f"Asset is currently {asset.status}")
+        # Calculate available quantity
+        from sqlalchemy import func
+        borrowed_qty = db.query(func.sum(Loan.quantity)).filter(
+            Loan.asset_id == asset.id,
+            Loan.status.in_([LoanStatus.REQUESTED.value, LoanStatus.APPROVED.value, LoanStatus.ACTIVE.value, LoanStatus.OVERDUE.value])
+        ).scalar() or 0
+        
+        available_qty = asset.quantity - borrowed_qty
+        
+        if available_qty < loan_in.quantity:
+            raise HTTPException(status_code=400, detail=f"Insufficient quantity available. Only {available_qty} left.")
             
         db_loan = Loan(
             asset_id=loan_in.asset_id,
             user_id=user_id,
             notes=loan_in.notes,
             purpose=loan_in.purpose,
-            status=LoanStatus.REQUESTED.value
+            status=LoanStatus.REQUESTED.value,
+            quantity=loan_in.quantity
         )
         db.add(db_loan)
         db.commit()

@@ -7,6 +7,7 @@ class LoanBase(BaseModel):
     asset_id: int
     notes: Optional[str] = None
     purpose: Optional[str] = None
+    quantity: int = 1
 
 class LoanCreate(LoanBase):
     pass

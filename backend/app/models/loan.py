@@ -25,6 +25,7 @@ class Loan(Base):
     asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default=LoanStatus.REQUESTED.value)
+    quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     
     notes: Mapped[Optional[str]] = mapped_column(String(500))
     purpose: Mapped[Optional[str]] = mapped_column(String(500))

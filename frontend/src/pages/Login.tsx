@@ -84,10 +84,10 @@ export function Login() {
           <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-[#DC2626]/10 blur-[100px] rounded-full pointer-events-none" />
 
           <div className="flex flex-col relative z-10">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#FFFFFF] mb-3 tracking-tight whitespace-nowrap">
-              CyberSec <span className="text-[#DC2626]">AMS</span>
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight whitespace-nowrap">
+              <span className="text-[#DC2626]">Pusaka</span> <span className="text-white">Siber</span>
             </h1>
-            <p className="text-[#A1A1AA] text-sm font-semibold font-mono tracking-[0.2em]">Asset Management</p>
+            <p className="text-[#A1A1AA] text-xs font-medium tracking-[0.2em] uppercase mt-1 whitespace-nowrap">Cyber Asset Management Platform</p>
             
             <div className="h-[3px] w-16 bg-linear-to-r from-[#DC2626] to-[#B91C1C] mt-10 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.5)]" />
           </div>
@@ -95,20 +95,20 @@ export function Login() {
 
         {/* Right Panel - Login Form */}
         <div className="md:w-7/12 p-10 md:p-14 flex flex-col justify-center bg-[#FFFFFF] relative">
-          <h2 className="text-xl font-bold text-[#18181B] mb-8 tracking-tight font-mono">Sign In Staff</h2>
+          <h2 className="text-2xl font-bold text-[#18181B] mb-8 tracking-tight">Sign In Staff</h2>
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 relative z-10">
             {error && (
               <div className="flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-lg animate-in shake">
                 <AlertTriangle size={15} className="text-red-700 mt-0.5 shrink-0" />
-                <p className="text-[11px] font-mono text-red-700 leading-relaxed font-semibold">{error}</p>
+                <p className="text-sm font-medium text-red-700 leading-relaxed">{error}</p>
               </div>
             )}
 
             <div className="space-y-4">
               {/* Email Input */}
               <div>
-                <label className="text-xs font-mono text-[#71717A] font-semibold block mb-2 tracking-wider">Email</label>
+                <label className="text-sm font-medium text-[#52525B] block mb-2">Email</label>
                 <div className="relative group">
                   <Mail size={14} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${emailFocused ? 'text-[#DC2626]' : 'text-[#71717A]'}`} />
                   <input
@@ -122,7 +122,7 @@ export function Login() {
                     onBlur={() => setEmailFocused(false)}
                     placeholder="Enter Email"
                     autoComplete="off"
-                    className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg pl-10 pr-4 py-3 text-sm font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/10 transition-all"
+                    className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg pl-10 pr-4 py-3 text-sm font-medium text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/10 transition-all"
                   />
                 </div>
               </div>
@@ -130,7 +130,7 @@ export function Login() {
               {/* Password Input */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-mono text-[#71717A] font-semibold tracking-wider">Password</label>
+                  <label className="text-sm font-medium text-[#52525B]">Password</label>
                 </div>
                 <div className="relative group">
                   <Lock size={14} className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${passwordFocused ? 'text-[#DC2626]' : 'text-[#71717A]'}`} />
@@ -145,7 +145,7 @@ export function Login() {
                     onBlur={() => setPasswordFocused(false)}
                     placeholder="••••••••"
                     autoComplete="new-password"
-                    className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg pl-10 pr-10 py-3 text-sm font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/10 transition-all"
+                    className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg pl-10 pr-10 py-3 text-sm font-medium text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/10 transition-all"
                   />
                   <button
                     type="button"
@@ -161,7 +161,7 @@ export function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3.5 mt-4 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-bold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center justify-center gap-2 py-3.5 mt-4 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-sm font-semibold rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

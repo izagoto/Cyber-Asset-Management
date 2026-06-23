@@ -17,19 +17,24 @@ def get_dashboard_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Total count of assets
-    total_assets = db.query(Asset).count()
+    # Total count of assets (items)
+    total_items = db.query(Asset).count()
     
-    # Counts by status
-    available_assets = db.query(Asset).filter(Asset.status == AssetStatus.AVAILABLE.value).count()
-    borrowed_assets = db.query(Asset).filter(Asset.status == AssetStatus.BORROWED.value).count()
-    maintenance_assets = db.query(Asset).filter(Asset.status == AssetStatus.MAINTENANCE.value).count()
-    lost_assets = db.query(Asset).filter(Asset.status == AssetStatus.LOST.value).count()
+    # Total quantity of assets
+    total_asset_quantity = db.query(func.sum(Asset.quantity)).scalar() or 0
+    total_lost_quantity = db.query(func.sum(Asset.quantity)).filter(Asset.status == AssetStatus.LOST.value).scalar() or 0
     
-    # Loan counts
-    pending_approvals = db.query(Loan).filter(Loan.status == LoanStatus.REQUESTED.value).count()
-    active_loans = db.query(Loan).filter(Loan.status == LoanStatus.ACTIVE.value).count()
-    overdue_loans = db.query(Loan).filter(Loan.status == "OVERDUE").count()
+    # Counts by status based on quantity instead of just distinct items
+    maintenance_assets = db.query(func.sum(Asset.quantity)).filter(Asset.status == AssetStatus.MAINTENANCE.value).scalar() or 0
+    lost_assets = db.query(func.sum(Asset.quantity)).filter(Asset.status == AssetStatus.LOST.value).scalar() or 0
+    
+    # Loan counts based on quantity
+    active_loans = db.query(func.sum(Loan.quantity)).filter(Loan.status == LoanStatus.ACTIVE.value).scalar() or 0
+    returned_loans = db.query(func.sum(Loan.quantity)).filter(Loan.status == LoanStatus.RETURNED.value).scalar() or 0
+    overdue_loans = db.query(func.sum(Loan.quantity)).filter(Loan.status == "OVERDUE").scalar() or 0
+    
+    # Calculate available assets dynamically (total - active - overdue - maintenance - lost)
+    available_assets = total_asset_quantity - active_loans - overdue_loans - maintenance_assets - lost_assets
     
     # Category Distribution
     categories_query = db.query(Asset.category, func.count(Asset.id)).group_by(Asset.category).all()
@@ -93,7 +98,7 @@ def get_dashboard_stats(
         ).count()
         
         # Add some initial aesthetic weights for demo purposes if database is mostly empty
-        if total_assets == 0:
+        if total_items == 0:
             borrowed += (month * 2) % 15
             returned += (month * 1.5) % 12
             overdue += (month) % 3
@@ -106,12 +111,14 @@ def get_dashboard_stats(
         })
         
     stats_data = {
-        "total_assets": total_assets,
+        "total_items": total_items,
+        "total_asset_quantity": total_asset_quantity,
+        "total_lost_quantity": total_lost_quantity,
         "available_assets": available_assets,
-        "borrowed_assets": borrowed_assets,
+        "borrowed_assets": active_loans,
         "maintenance_assets": maintenance_assets,
         "lost_assets": lost_assets,
-        "pending_approvals": pending_approvals,
+        "returned_loans": returned_loans,
         "active_loans": active_loans,
         "overdue_loans": overdue_loans,
         "category_distribution": category_distribution,

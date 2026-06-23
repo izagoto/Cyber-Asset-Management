@@ -5,7 +5,7 @@ from app.middleware.auth import get_current_user
 
 
 def require_role(
-    role: str
+    roles: list[str] | str
 ):
 
     def role_checker(
@@ -13,8 +13,9 @@ def require_role(
             get_current_user
         )
     ):
+        allowed_roles = roles if isinstance(roles, list) else [roles]
 
-        if current_user.role != role:
+        if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=403,
                 detail="Forbidden"

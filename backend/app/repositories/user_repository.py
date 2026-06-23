@@ -49,3 +49,28 @@ class UserRepository:
         db.commit()
         db.refresh(user)
         return user
+
+    @staticmethod
+    def update(
+        db: Session,
+        user_id: int,
+        update_data: dict
+    ):
+        user = UserRepository.get_by_id(db, user_id)
+        if user:
+            for key, value in update_data.items():
+                setattr(user, key, value)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    @staticmethod
+    def delete(
+        db: Session,
+        user_id: int
+    ):
+        user = UserRepository.get_by_id(db, user_id)
+        if user:
+            db.delete(user)
+            db.commit()
+        return user

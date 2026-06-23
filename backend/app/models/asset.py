@@ -24,8 +24,18 @@ class Asset(Base):
     serial_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True, index=True)
     description: Mapped[Optional[str]] = mapped_column(String(500))
     status: Mapped[str] = mapped_column(String(50), default=AssetStatus.AVAILABLE.value)
+    quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
     loans = relationship("Loan", back_populates="asset")
+    
+    @property
+    def available_quantity(self) -> int:
+        from app.models.loan import LoanStatus
+        borrowed = sum(
+            loan.quantity for loan in self.loans 
+            if loan.status in (LoanStatus.REQUESTED.value, LoanStatus.APPROVED.value, LoanStatus.ACTIVE.value, LoanStatus.OVERDUE.value)
+        )
+        return self.quantity - borrowed

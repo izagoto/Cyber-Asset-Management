@@ -8,9 +8,10 @@ class AssetBase(BaseModel):
     category: Optional[str] = None
     serial_number: Optional[str] = None
     description: Optional[str] = None
+    quantity: int = 1
 
 class AssetCreate(AssetBase):
-    pass
+    status: Optional[AssetStatus] = None
 
 class AssetUpdate(BaseModel):
     name: Optional[str] = None
@@ -18,11 +19,13 @@ class AssetUpdate(BaseModel):
     serial_number: Optional[str] = None
     description: Optional[str] = None
     status: Optional[AssetStatus] = None
+    quantity: Optional[int] = None
 
 class AssetResponse(AssetBase):
     id: int
     status: AssetStatus
     created_at: datetime
+    available_quantity: Optional[int] = None
     updated_at: Optional[datetime] = None
 
     class Config:

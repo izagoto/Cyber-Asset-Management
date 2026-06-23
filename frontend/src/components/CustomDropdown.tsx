@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, Check, SlidersHorizontal, Search } from 'lucide-react';
 
 interface CustomSelectProps<T> {
   value: T;
@@ -30,11 +30,11 @@ export function CustomSelect<T extends string | number>({
   const currentOption = options.find(opt => opt.value === value);
 
   return (
-    <div className={`relative inline-block text-left ${className}`} ref={containerRef}>
+    <div className={`relative inline-block text-left ${className} ${isOpen ? 'z-9999' : ''}`} ref={containerRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-1 px-3 py-1.5 bg-white border rounded-lg text-xs font-mono font-bold text-[#18181B] shadow-xs hover:bg-[#FAFAFA] transition-all cursor-pointer focus:outline-none ${
+        className={`w-full flex items-center justify-between gap-1 px-3 py-1.5 bg-white border rounded-lg text-sm text-[#18181B] shadow-xs hover:bg-[#FAFAFA] transition-all cursor-pointer focus:outline-none ${
           isOpen ? 'border-[#DC2626] text-[#DC2626] ring-1/2 ring-[#DC2626]/20' : 'border-[#E4E4E7]'
         }`}
       >
@@ -55,7 +55,7 @@ export function CustomSelect<T extends string | number>({
                     onChange(opt.value);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-mono text-left transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors ${
                     isSelected
                       ? 'bg-[#FEF2F2] text-[#DC2626] font-bold'
                       : 'text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#18181B]'
@@ -77,16 +77,18 @@ interface CustomMultiSelectProps {
   selectedValues: string[];
   onChange: (values: string[]) => void;
   options: string[];
-  placeholder?: string;
   className?: string;
+  label?: string;
+  allLabel?: string;
 }
 
 export function CustomMultiSelect({
   selectedValues,
   onChange,
   options,
-  placeholder = "Select Categories",
-  className = ""
+  className = "",
+  label = "Filter",
+  allLabel = "All Categories"
 }: CustomMultiSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,23 +120,14 @@ export function CustomMultiSelect({
   };
 
   // Determine button text
-  let triggerText = placeholder;
-  if (selectedValues.length === options.length && options.length > 0) {
-    triggerText = "All Categories";
-  } else if (selectedValues.length === 0) {
-    triggerText = "No Category Selected";
-  } else if (selectedValues.length === 1) {
-    triggerText = selectedValues[0];
-  } else {
-    triggerText = `${selectedValues.length} Categories`;
-  }
+  const triggerText = selectedValues.length > 0 ? `${label} (${selectedValues.length})` : label;
 
   return (
-    <div className={`relative inline-block text-left ${className}`} ref={containerRef}>
+    <div className={`relative inline-block text-left ${className} ${isOpen ? 'z-9999' : ''}`} ref={containerRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 bg-white border rounded-lg text-xs font-mono text-[#52525B] shadow-xs hover:bg-[#FAFAFA] transition-all cursor-pointer focus:outline-none ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 bg-white border rounded-lg text-sm text-[#52525B] shadow-xs hover:bg-[#FAFAFA] transition-all cursor-pointer focus:outline-none ${
           isOpen ? 'border-[#DC2626] text-[#DC2626] ring-1/2 ring-[#DC2626]/20' : 'border-[#E4E4E7]'
         }`}
       >
@@ -145,30 +138,33 @@ export function CustomMultiSelect({
 
       {isOpen && (
         <div className="absolute right-0 mt-1.5 w-56 bg-[#FFFFFF] rounded-xl shadow-lg shadow-black/5 overflow-hidden z-50 border border-[#E4E4E7] animate-in fade-in slide-in-from-top-2 duration-150">
-          {/* Header Toolbar */}
-          <div className="px-3 py-2 bg-[#F4F4F5]/50 border-b border-[#E4E4E7]/50 flex items-center justify-between text-[10px] font-mono">
-            <span className="font-bold text-[#71717A]">FILTER</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleCheckAll}
-                className="text-[#DC2626] hover:underline font-bold cursor-pointer"
-              >
-                Check All
-              </button>
-              <span className="text-[#E4E4E7]">|</span>
-              <button
-                type="button"
-                onClick={handleClearAll}
-                className="text-[#71717A] hover:text-[#18181B] hover:underline cursor-pointer"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
+
 
           {/* Checklist Area */}
           <div className="py-1 max-h-48 overflow-y-auto">
+            {/* All Categories Option */}
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedValues.length === options.length) {
+                  handleClearAll();
+                } else {
+                  handleCheckAll();
+                }
+              }}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#18181B] transition-colors text-left border-b border-[#E4E4E7]/50 mb-1"
+            >
+              <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all ${
+                selectedValues.length === options.length && options.length > 0
+                  ? 'bg-[#DC2626] border-[#DC2626] text-white shadow-xs'
+                  : 'border-[#E4E4E7] bg-white'
+              }`}>
+                {selectedValues.length === options.length && options.length > 0 && <Check size={10} strokeWidth={4} />}
+              </div>
+              <span className="truncate font-bold">{allLabel}</span>
+            </button>
+
+
             {options.map((opt) => {
               const isChecked = selectedValues.includes(opt);
               return (
@@ -176,7 +172,7 @@ export function CustomMultiSelect({
                   key={opt}
                   type="button"
                   onClick={() => handleToggle(opt)}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-mono text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#18181B] transition-colors text-left"
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-[#52525B] hover:bg-[#F4F4F5] hover:text-[#18181B] transition-colors text-left"
                 >
                   {/* Custom Checkbox */}
                   <div className={`w-3.5 h-3.5 border rounded flex items-center justify-center transition-all ${
@@ -190,6 +186,116 @@ export function CustomMultiSelect({
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+interface SearchableSelectProps<T> {
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string; badgeText?: string; badgeColor?: string }[];
+  className?: string;
+  placeholder?: string;
+}
+
+export function SearchableSelect<T extends string | number>({
+  value,
+  onChange,
+  options,
+  className = "w-full",
+  placeholder = "Select an option..."
+}: SearchableSelectProps<T>) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const currentOption = options.find(opt => opt.value === value);
+  const filteredOptions = options.filter(opt => 
+    String(opt.label).toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (opt.badgeText && opt.badgeText.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  return (
+    <div className={`relative inline-block text-left ${className} ${isOpen ? 'z-9999' : ''}`} ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between gap-1 px-3 py-2.5 bg-white border rounded-lg text-xs font-mono text-[#18181B] hover:bg-[#FAFAFA] transition-all cursor-pointer focus:outline-none ${
+          isOpen ? 'border-[#DC2626] ring-1/2 ring-[#DC2626]/20' : 'border-[#E4E4E7]'
+        }`}
+      >
+        <span className={`flex items-center gap-2 ${!currentOption ? "text-[#A1A1AA]" : "truncate"}`}>
+          <span className="truncate">{currentOption ? currentOption.label : placeholder}</span>
+          {currentOption?.badgeText && (
+            <span className={`shrink-0 ${currentOption.badgeColor || ''}`}>{currentOption.badgeText}</span>
+          )}
+        </span>
+        <ChevronDown size={14} className={`text-[#A1A1AA] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} shrink-0`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 mt-1.5 w-full bg-[#FFFFFF] rounded-xl shadow-lg shadow-black/5 overflow-hidden z-50 border border-[#E4E4E7] animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="p-2 border-b border-[#E4E4E7]">
+            <div className="relative">
+              <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#A1A1AA]" />
+              <input
+                type="text"
+                autoFocus
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search asset..."
+                className="w-full pl-7 pr-3 py-1.5 bg-[#FAFAFA] border border-[#E4E4E7] rounded-lg text-xs font-mono focus:outline-none focus:border-[#DC2626] transition-all"
+              />
+            </div>
+          </div>
+          <div className="py-1 max-h-48 overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => {
+                const isSelected = opt.value === value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setSearchTerm("");
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-mono text-left transition-colors ${
+                      isSelected
+                        ? 'bg-[#FEF2F2] font-bold'
+                        : 'hover:bg-[#F4F4F5]'
+                    } ${isSelected ? 'text-[#DC2626]' : 'text-[#52525B] hover:text-[#18181B]'}`}
+                  >
+                    <span className="truncate flex items-center gap-2">
+                      <span className="truncate">{opt.label}</span>
+                      {opt.badgeText && (
+                        <span className={`shrink-0 ${opt.badgeColor || ''}`}>{opt.badgeText}</span>
+                      )}
+                    </span>
+                    {isSelected && <Check size={12} className="text-[#DC2626] shrink-0" />}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-4 text-center text-xs font-mono text-[#A1A1AA]">
+                No results found.
+              </div>
+            )}
           </div>
         </div>
       )}

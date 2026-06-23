@@ -1,27 +1,46 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import { 
-  Plus, Edit2, Eye, Trash2, X, 
-  Search, ChevronLeft, ChevronRight 
+  Users as UsersIcon, Plus, Edit2, Trash2, X, 
+  Eye, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import type { User } from '../types';
-import { CustomSelect } from '../components/CustomDropdown';
+import { CustomSelect, CustomMultiSelect } from '../components/CustomDropdown';
 
 export function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [selectedUserForLogs, setSelectedUserForLogs] = useState<User | null>(null);
+  const [selectedUserLogs, setSelectedUserLogs] = useState<any[] | null>(null);
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
 
-  // Search & Pagination states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  const [entriesPerPage, setEntriesPerPage] = useState(Number(searchParams.get('limit')) || 10);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(searchParams.get('roles') ? searchParams.get('roles')!.split(',') : []);
+  const [selectedDivisions, setSelectedDivisions] = useState<string[]>(searchParams.get('divisions') ? searchParams.get('divisions')!.split(',') : []);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (entriesPerPage !== 10) params.set('limit', String(entriesPerPage));
+    if (selectedRoles.length > 0) params.set('roles', selectedRoles.join(','));
+    if (selectedDivisions.length > 0) params.set('divisions', selectedDivisions.join(','));
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, currentPage, entriesPerPage, selectedRoles, selectedDivisions, setSearchParams]);
 
   // Form states
   const [fullname, setFullname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('USER');
+  const [role, setRole] = useState('ADMIN');
   const [division, setDivision] = useState('');
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +49,9 @@ export function Users() {
   const fetchUsers = async () => {
     try {
       const res = await api.get('/users');
-      setUsers(res.data.data ?? []);
+      const data = res.data.data ?? [];
+      data.sort((a: User, b: User) => b.id - a.id);
+      setUsers(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -44,26 +65,33 @@ export function Users() {
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullname.trim() || !email.trim() || !password.trim()) return;
+    if (!fullname.trim() || !email.trim() || (!password.trim() && !editingUser)) return;
     setSubmitting(true);
     setErrorMessage('');
     try {
-      await api.post('/users', {
+      const payload = {
         fullname,
         email,
-        password,
+        password: password || undefined,
         role,
         division: division || null,
         phone: phone || null,
         is_active: true
-      });
+      };
+
+      if (editingUser) {
+        await api.patch(`/users/${editingUser.id}`, payload);
+      } else {
+        await api.post('/users', payload);
+      }
       setFullname('');
       setEmail('');
       setPassword('');
-      setRole('USER');
+      setRole('ADMIN');
       setDivision('');
       setPhone('');
       setShowModal(false);
+      setCurrentPage(1); // Jump back to first page
       fetchUsers();
     } catch (err: any) {
       console.error("Failed to save user", err);
@@ -73,8 +101,44 @@ export function Users() {
     }
   };
 
+  const handleDeleteUser = async (user: User) => {
+    if (!window.confirm(`Are you sure you want to delete user ${user.fullname}?`)) return;
+    try {
+      await api.delete(`/users/${user.id}`);
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete user");
+    }
+  };
+
+  const handleViewLogs = async (user: User) => {
+    setLogsLoading(true);
+    setShowLogsModal(true);
+    setSelectedUserForLogs(user);
+    try {
+      const res = await api.get(`/users/${user.id}/logs`);
+      setSelectedUserLogs(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      setSelectedUserLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  // Compute available roles (capitalized) and divisions
+  const roles = Array.from(new Set(users.map(u => u.role))).filter(Boolean).map(r => r.charAt(0).toUpperCase() + r.slice(1).toLowerCase());
+  const divisions = Array.from(new Set(users.map(u => u.division))).filter(Boolean) as string[];
+
   // Filtering Logic
   const filtered = users.filter((u) => {
+    // Multi-select filters
+    if (selectedRoles.length > 0 && !selectedRoles.map(r => r.toUpperCase()).includes(u.role)) return false;
+    if (selectedDivisions.length > 0 && (!u.division || !selectedDivisions.includes(u.division))) return false;
+
+    if (!searchQuery) return true;
+
     const matchesSearch =
       u.fullname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,23 +166,23 @@ export function Users() {
     <div className="space-y-6 animate-in fade-in duration-500">
       
       {/* Main Card Container */}
-      <div className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden flex flex-col">
+      <div className="bg-[#FFFFFF] border border-[#E4E4E7] border-l-4 border-l-[#A1A1AA] rounded-2xl shadow-[0_2px_10px_-3px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden flex flex-col">
         
         {/* Card Header (Matching Active Sidebar Style) */}
-        <div className="bg-linear-to-r from-[#DC2626] to-[#B91C1C] px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="text-base font-bold text-white tracking-wide">User Directory Management</div>
-            <div className="text-xs text-[#FEF2F2]/90 font-mono mt-1">
-              {users.length} registered users · {users.filter(u => u.role === "ADMIN").length} administrators
-            </div>
+        <div className="bg-[#FFFFFF] border-b border-[#E4E4E7] px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <UsersIcon size={18} className="text-[#DC2626]" />
+            <div className="text-base font-bold text-[#18181B] tracking-wide">Cybersecurity Directory</div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => {
+                setEditingUser(null);
+                setFullname(''); setEmail(''); setPassword(''); setRole('ADMIN'); setDivision(''); setPhone('');
                 setErrorMessage('');
                 setShowModal(true);
               }}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-white/95 text-[#DC2626] border border-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white border border-[#DC2626] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
             >
               <Plus size={13} /> Add New User
             </button>
@@ -128,7 +192,7 @@ export function Users() {
         {/* Toolbar: Search and Entries Selector */}
         <div className="bg-[#FAFAFA] border-b border-[#E4E4E7] px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Entries dropdown selector */}
-          <div className="flex items-center gap-2 text-xs font-mono text-[#52525B]">
+          <div className="flex items-center gap-2 text-sm text-[#52525B]">
             <span>Show</span>
             <CustomSelect
               value={entriesPerPage}
@@ -143,32 +207,53 @@ export function Users() {
                 { value: 50, label: 50 }
               ]}
             />
-            <span>entries</span>
+            <span>result per page</span>
           </div>
 
           {/* Search bar */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717A]" />
+            <div className="relative group">
               <input
                 type="text"
-                placeholder="Search user name, email, role..."
+                placeholder="Filter in records..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-48 sm:w-56 bg-white border border-[#E4E4E7] rounded-lg pl-8 pr-8 py-1.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
+                className="w-64 sm:w-80 bg-white border border-[#E4E4E7] rounded pl-4 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
               />
               {searchQuery && (
                 <button 
                   onClick={() => { setSearchQuery(''); setCurrentPage(1); }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A1A1AA] hover:text-[#18181B] p-0.5"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A1A1AA] hover:text-[#18181B] p-0.5 cursor-pointer"
                 >
                   <X size={12} />
                 </button>
               )}
             </div>
+
+            <CustomMultiSelect
+              label="Role"
+              allLabel="All Roles"
+              selectedValues={selectedRoles}
+              onChange={(vals) => {
+                setSelectedRoles(vals);
+                setCurrentPage(1);
+              }}
+              options={roles}
+            />
+            
+            <CustomMultiSelect
+              label="Division"
+              allLabel="All Divisions"
+              selectedValues={selectedDivisions}
+              onChange={(vals) => {
+                setSelectedDivisions(vals);
+                setCurrentPage(1);
+              }}
+              options={divisions}
+            />
           </div>
         </div>
 
@@ -179,12 +264,12 @@ export function Users() {
           ) : (
             <table className="w-full min-w-[700px]">
               <thead>
-                <tr className="border-b border-[#E4E4E7] bg-[#F4F4F5]">
-                  <th className="text-left px-6 py-3.5 text-[10px] font-mono font-bold text-[#71717A] tracking-wider">User</th>
-                  <th className="text-left px-6 py-3.5 text-[10px] font-mono font-bold text-[#71717A] tracking-wider">Department / Division</th>
-                  <th className="text-left px-6 py-3.5 text-[10px] font-mono font-bold text-[#71717A] tracking-wider">Contact</th>
-                  <th className="text-left px-6 py-3.5 text-[10px] font-mono font-bold text-[#71717A] tracking-wider w-32">Role</th>
-                  <th className="text-left px-6 py-3.5 text-[10px] font-mono font-bold text-[#71717A] tracking-wider w-28">Actions</th>
+                <tr className="bg-[#F4F4F5] border-y border-[#E4E4E7]">
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">User</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">Department / Division</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">Contact</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap w-32">Role</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#18181B] whitespace-nowrap w-28">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E4E4E7]/60">
@@ -193,12 +278,13 @@ export function Users() {
                   return (
                     <tr
                       key={user.id}
-                      className="hover:bg-[#FAFAFA] transition-colors"
+                      className="hover:bg-[#F9FAFB] transition-colors bg-white border-b border-[#E4E4E7]"
                     >
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className={[
-                            "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 shadow-xs",
+                            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 shadow-xs",
+                            "w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0",
                             user.role === "ADMIN"
                               ? "bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626]"
                               : "bg-[#F4F4F5] border border-[#E4E4E7] text-[#71717A]",
@@ -206,38 +292,55 @@ export function Users() {
                             {initials}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-[#18181B]">{user.fullname}</div>
-                            <div className="text-[10px] font-mono text-[#71717A] mt-0.5">{user.email}</div>
+                            <div className="text-[14px] text-[#4B5563] font-semibold">{user.fullname}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-3.5 text-xs font-mono text-[#52525B]">
-                        {user.division || '-'}
+                      <td className="px-6 py-4 text-[14px] text-[#4B5563]">{user.division || '-'}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-[13px] text-[#4B5563] font-medium">{user.email}</div>
+                        {user.phone && <div className="text-[13px] text-[#6B7280]">{user.phone}</div>}
                       </td>
-                      <td className="px-6 py-3.5 text-xs font-mono text-[#71717A]">
-                        {user.phone || '-'}
-                      </td>
-                      <td className="px-6 py-3.5">
+                      <td className="px-6 py-4">
                         {user.role === "ADMIN" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold rounded border border-[#DC2626]/30 text-[#DC2626] bg-[#DC2626]/5">
-                            ADMIN
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-[#DC2626]/30 text-[#DC2626] bg-[#DC2626]/5">
+                            Admin
+                          </span>
+                        ) : user.role === "SUPERVISOR" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-purple-500/30 text-purple-600 bg-purple-500/5">
+                            Supervisor
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-mono font-bold rounded border border-[#E4E4E7] text-[#71717A] bg-[#F4F4F5]">
-                            BORROWER
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-[#E4E4E7] text-[#71717A] bg-[#F4F4F5]">
+                            Staff
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <button className="p-1.5 text-[#71717A] hover:text-[#0891B2] hover:bg-cyan-500/10 rounded transition-all cursor-pointer" title="Edit User">
-                            <Edit2 size={11} />
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => {
+                              setEditingUser(user);
+                              setFullname(user.fullname);
+                              setEmail(user.email);
+                              setRole(user.role);
+                              setDivision(user.division || '');
+                              setPhone(user.phone || '');
+                              setErrorMessage('');
+                              setShowModal(true);
+                            }}
+                            className="p-1.5 bg-[#3B82F6] text-white hover:bg-[#2563EB] rounded cursor-pointer shadow-sm transition-colors" title="Edit User">
+                            <Edit2 size={15} strokeWidth={2.5} />
                           </button>
-                          <button className="p-1.5 text-[#71717A] hover:text-[#F59E0B] hover:bg-[#F59E0B]/10 rounded transition-all cursor-pointer" title="View User Logs">
-                            <Eye size={11} />
+                          <button 
+                            onClick={() => handleViewLogs(user)}
+                            className="p-1.5 bg-[#10B981] text-white hover:bg-[#059669] rounded cursor-pointer shadow-sm transition-colors" title="View User Logs">
+                            <Eye size={15} strokeWidth={2.5} />
                           </button>
-                          <button className="p-1.5 text-[#71717A] hover:text-[#DC2626] hover:bg-red-500/10 rounded transition-all cursor-pointer" title="Delete User">
-                            <Trash2 size={11} />
+                          <button 
+                            onClick={() => handleDeleteUser(user)}
+                            className="p-1.5 bg-[#EF4444] text-white hover:bg-[#DC2626] rounded cursor-pointer shadow-sm transition-colors" title="Delete User">
+                            <Trash2 size={15} strokeWidth={2.5} />
                           </button>
                         </div>
                       </td>
@@ -247,7 +350,7 @@ export function Users() {
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-6 py-16 text-center text-xs font-mono text-[#71717A]">
-                      No users match the search criteria.
+                      No users found.
                     </td>
                   </tr>
                 )}
@@ -308,110 +411,165 @@ export function Users() {
       </div>
 
       {/* Add User Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <form onSubmit={handleSaveUser} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-            <div className="flex items-center justify-between px-6 py-4 bg-linear-to-r from-[#DC2626] to-[#B91C1C] text-white">
+      {showModal && createPortal(
+        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
+          <form onSubmit={handleSaveUser} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
               <div>
-                <div className="text-sm font-mono font-bold">Add New User</div>
+                <div className="text-sm font-mono font-bold">{editingUser ? 'Edit User' : 'Add New User'}</div>
               </div>
               <button 
                 type="button"
                 onClick={() => setShowModal(false)} 
-                className="text-white/80 hover:text-white hover:bg-white/10 rounded transition-all p-1"
+                className="text-[#71717A] hover:text-[#18181B] hover:bg-[#E4E4E7] rounded transition-all p-1"
               >
                 <X size={15} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
               {errorMessage && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs font-mono font-bold leading-relaxed">
+                <div className="col-span-1 sm:col-span-2 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-xs font-mono font-bold leading-relaxed">
                   {errorMessage}
                 </div>
               )}
-              <div>
+              <div className="col-span-1 sm:col-span-2">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Full Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. John Doe"
                   value={fullname}
                   onChange={(e) => setFullname(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                 />
               </div>
-              <div>
+              <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Email Address</label>
                 <input
                   type="email"
                   required
-                  placeholder="e.g. user@cybersec.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                 />
               </div>
-              <div>
+              <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Password</label>
                 <input
                   type="password"
-                  required
-                  placeholder="Minimum 6 characters"
+                  required={!editingUser}
+                  placeholder={editingUser ? "(Leave blank to keep current password)" : ""}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                 />
               </div>
-              <div>
+              <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Role</label>
-                <select
+                <CustomSelect
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] cursor-pointer"
-                >
-                  <option value="USER">Borrower</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
+                  onChange={(val) => setRole(val as string)}
+                  options={[
+                    { value: 'ADMIN', label: 'Admin' },
+                    { value: 'SUPERVISOR', label: 'Supervisor' }
+                  ]}
+                  className="w-full h-[38px] [&>button]:h-full"
+                />
               </div>
-              <div>
+              <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Department / Division</label>
                 <input
                   type="text"
-                  placeholder="e.g. Incident Response, Cyber Defense"
                   value={division}
                   onChange={(e) => setDivision(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                 />
               </div>
-              <div>
+              <div className="col-span-1 sm:col-span-2">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Phone Number</label>
                 <input
                   type="text"
-                  placeholder="e.g. +62 812-XXXX-XXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                 />
               </div>
             </div>
-            <div className="flex gap-3 px-6 py-4 bg-[#FAFAFA] border-t border-[#E4E4E7]">
+            <div className="flex gap-4 px-8 py-5 bg-[#FAFAFA] border-t border-[#E4E4E7] rounded-b-2xl">
               <button 
                 type="button"
                 onClick={() => setShowModal(false)} 
-                className="flex-1 py-2.5 bg-[#FFFFFF] hover:bg-[#FAFAFA] border border-[#E4E4E7] text-[#71717A] text-xs font-mono font-semibold rounded-lg transition-all cursor-pointer shadow-xs"
+                className="flex-1 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
               >
                 Cancel
               </button>
               <button 
-                type="submit"
-                disabled={submitting || !fullname.trim() || !email.trim() || password.trim().length < 6}
-                className="flex-1 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-semibold rounded-lg transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                type="submit" 
+                disabled={submitting}
+                className="flex-1 py-2.5 bg-linear-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : 'Save User'}
               </button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* User Logs Modal */}
+      {showLogsModal && createPortal(
+        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
+              <div>
+                <div className="text-sm font-mono font-bold">User Loan History</div>
+                <div className="text-[10px] text-[#71717A] font-mono mt-0.5">
+                  {selectedUserForLogs?.fullname}
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowLogsModal(false)} 
+                className="text-[#71717A] hover:text-[#18181B] hover:bg-[#E4E4E7] rounded transition-all p-1"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="p-8 max-h-[60vh] overflow-y-auto">
+              {logsLoading ? (
+                <div className="text-center text-[#71717A] text-xs font-mono py-8">Loading logs...</div>
+              ) : selectedUserLogs && selectedUserLogs.length > 0 ? (
+                <div className="space-y-4">
+                  {selectedUserLogs.map((log) => (
+                    <div key={log.id} className="p-4 border border-[#E4E4E7] rounded-xl flex items-center justify-between">
+                      <div>
+                        <div className="text-xs font-bold text-[#18181B]">{log.asset?.name || 'Unknown Asset'}</div>
+                        <div className="text-[10px] text-[#71717A] mt-1">Requested: {new Date(log.requested_at).toLocaleDateString()}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] font-mono font-bold px-2 py-1 bg-blue-50 text-blue-600 rounded">
+                          {log.status}
+                        </div>
+                        <div className="text-[10px] text-[#71717A] mt-1">Qty: {log.quantity}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-[#71717A] text-xs font-mono py-8">No loan history found for this user.</div>
+              )}
+            </div>
+            <div className="flex justify-end gap-4 px-8 py-5 bg-[#FAFAFA] border-t border-[#E4E4E7] rounded-b-2xl">
+              <button 
+                type="button"
+                onClick={() => setShowLogsModal(false)} 
+                className="px-6 py-2.5 bg-[#FFFFFF] hover:bg-[#FAFAFA] border border-[#E4E4E7] text-[#71717A] text-xs font-mono font-semibold rounded-lg transition-all cursor-pointer shadow-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

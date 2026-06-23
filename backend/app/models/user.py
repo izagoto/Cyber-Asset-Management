@@ -36,7 +36,7 @@ class User(Base):
 
     role: Mapped[str] = mapped_column(
         String(20),
-        default="USER"
+        default="ADMIN"
     )
     division: Mapped[Optional[str]] = mapped_column(
         String(100),

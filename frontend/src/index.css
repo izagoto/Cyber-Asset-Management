@@ -33,3 +33,41 @@
 .mantine-AppShell-root {
   background-color: transparent !important;
 }
+
+/* Hide scrollbar for sidebar nav to fix 6px gap */
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-nav {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Sidebar Active Item Cutout Effect */
+.sidebar-item-active {
+  border-radius: 20px 0 0 20px;
+  position: relative;
+}
+
+.sidebar-item-active::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -24px;
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle at 0 0, transparent 24px, #B91C1C 24px);
+  pointer-events: none;
+}
+
+.sidebar-item-active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -24px;
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle at 0 100%, transparent 24px, #B91C1C 24px);
+  pointer-events: none;
+}
+
