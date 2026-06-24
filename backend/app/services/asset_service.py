@@ -53,3 +53,13 @@ class AssetService:
         db.refresh(db_asset)
         
         return db_asset
+
+    @staticmethod
+    def delete(db: Session, asset_id: int):
+        db_asset = AssetService.get_by_id(db, asset_id)
+        if not db_asset:
+            return False
+            
+        db.delete(db_asset)
+        db.commit()
+        return True

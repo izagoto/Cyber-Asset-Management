@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import { 
   Users as UsersIcon, Plus, Edit2, Trash2, X, 
-  Eye, ChevronLeft, ChevronRight
+  Eye, ChevronLeft, ChevronRight, CheckCircle2
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import type { User } from '../types';
@@ -45,6 +45,9 @@ export function Users() {
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -63,9 +66,7 @@ export function Users() {
     fetchUsers();
   }, []);
 
-  const handleSaveUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fullname.trim() || !email.trim() || (!password.trim() && !editingUser)) return;
+  const executeSaveUser = async () => {
     setSubmitting(true);
     setErrorMessage('');
     try {
@@ -84,19 +85,25 @@ export function Users() {
       } else {
         await api.post('/users', payload);
       }
-      setFullname('');
-      setEmail('');
-      setPassword('');
-      setRole('ADMIN');
-      setDivision('');
-      setPhone('');
-      setShowModal(false);
-      setCurrentPage(1); // Jump back to first page
-      fetchUsers();
+      
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setFullname('');
+        setEmail('');
+        setPassword('');
+        setRole('ADMIN');
+        setDivision('');
+        setPhone('');
+        setShowSaveConfirmModal(false);
+        setShowModal(false);
+        setSaveSuccess(false);
+        setCurrentPage(1); // Jump back to first page
+        fetchUsers();
+      }, 1500);
     } catch (err: any) {
       console.error("Failed to save user", err);
+      setShowSaveConfirmModal(false);
       setErrorMessage(err.response?.data?.detail || err.response?.data?.message || "Failed to create user. Please check if email is unique.");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -412,8 +419,8 @@ export function Users() {
 
       {/* Add User Modal */}
       {showModal && createPortal(
-        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
-          <form onSubmit={handleSaveUser} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
+        <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
+          <form onSubmit={(e) => { e.preventDefault(); setShowSaveConfirmModal(true); }} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
             <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
               <div>
                 <div className="text-sm font-mono font-bold">{editingUser ? 'Edit User' : 'Add New User'}</div>
@@ -494,20 +501,20 @@ export function Users() {
                 />
               </div>
             </div>
-            <div className="flex gap-4 px-8 py-5 bg-[#FAFAFA] border-t border-[#E4E4E7] rounded-b-2xl">
+            <div className="flex justify-end gap-3 px-8 py-5 bg-[#FAFAFA] border-t border-[#E4E4E7] rounded-b-2xl">
               <button 
                 type="button"
-                onClick={() => setShowModal(false)} 
-                className="flex-1 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+                onClick={() => setShowCancelConfirmModal(true)} 
+                className="px-6 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
               >
                 Cancel
               </button>
               <button 
-                type="submit" 
-                disabled={submitting}
-                className="flex-1 py-2.5 bg-linear-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                type="submit"
+                disabled={submitting || !fullname.trim() || !email.trim() || (!password.trim() && !editingUser)}
+                className="px-6 py-2.5 bg-linear-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-mono font-bold rounded-lg transition-all shadow-sm disabled:opacity-50 cursor-pointer"
               >
-                {submitting ? 'Saving...' : 'Save User'}
+                {submitting ? 'Saving...' : (editingUser ? 'Save Changes' : 'Create User')}
               </button>
             </div>
           </form>
@@ -517,7 +524,7 @@ export function Users() {
 
       {/* User Logs Modal */}
       {showLogsModal && createPortal(
-        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
           <div className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
             <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
               <div>
@@ -567,6 +574,106 @@ export function Users() {
                 Close
               </button>
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirmModal && createPortal(
+        <div className="fixed inset-0 z-999999 flex items-start justify-center p-4 pt-6 sm:pt-8 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F59E0B]">
+              <h3 className="font-mono text-white text-base font-bold">Discard Changes?</h3>
+              <button 
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                Are you sure you want to cancel? Any unsaved changes will be lost.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+              <button 
+                type="button"
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                No, Keep Editing
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCancelConfirmModal(false);
+                  setShowModal(false);
+                  setFullname('');
+                  setEmail('');
+                  setPassword('');
+                  setRole('ADMIN');
+                  setDivision('');
+                  setPhone('');
+                }}
+                className="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                Yes, Discard
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Save Confirmation Modal */}
+      {showSaveConfirmModal && createPortal(
+        <div className="fixed inset-0 z-999999 flex items-start justify-center p-4 pt-6 sm:pt-8 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {saveSuccess ? (
+              <div className="px-6 py-10 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
+                <div className="w-14 h-14 bg-[#DCFCE7] rounded-full flex items-center justify-center mb-4 text-[#166534] shadow-sm">
+                  <CheckCircle2 size={30} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-lg font-mono font-bold text-[#18181B] mb-1">Saved!</h3>
+                <p className="text-sm font-sans text-[#71717A]">User data has been saved successfully.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-6 py-4 bg-[#10B981]">
+                  <h3 className="font-mono text-white text-base font-bold">Confirm Save</h3>
+                  <button 
+                    onClick={() => setShowSaveConfirmModal(false)}
+                    className="text-white/80 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                    Are you sure you want to save {editingUser ? 'these changes' : 'this new user'}?
+                  </p>
+                </div>
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+                  <button 
+                    type="button"
+                    onClick={() => setShowSaveConfirmModal(false)}
+                    disabled={submitting}
+                    className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={executeSaveUser}
+                    disabled={submitting}
+                    className="px-5 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? 'Saving...' : 'Confirm Save'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>,
         document.body

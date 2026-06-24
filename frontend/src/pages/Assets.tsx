@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Download, Edit2, Trash2, X, 
-  ChevronLeft, ChevronRight, Database 
+  ChevronLeft, ChevronRight, Database, CheckCircle2
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import type { Asset } from '../types';
@@ -59,6 +59,8 @@ export function Assets() {
   }, [searchQuery, currentPage, entriesPerPage, selectedCategories, setSearchParams]);
 
   // Modal form states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [newSerialNumber, setNewSerialNumber] = useState('');
@@ -68,6 +70,18 @@ export function Assets() {
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  // Toast Notification State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const resetForm = () => {
     setNewName('');
@@ -147,11 +161,35 @@ export function Assets() {
   const indexOfFirstAsset = indexOfLastAsset - entriesPerPage;
   const currentAssets = filtered.slice(indexOfFirstAsset, indexOfLastAsset);
 
-  const handleSaveAsset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim()) return;
+  const openDeleteModal = (asset: Asset) => {
+    setAssetToDelete(asset);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!assetToDelete) return;
+    setSubmitting(true);
+    const assetName = assetToDelete.name;
+    try {
+      await api.delete(`/assets/${assetToDelete.id}`);
+      fetchAssets();
+      setDeleteSuccess(true);
+      setTimeout(() => {
+        setShowDeleteModal(false);
+        setAssetToDelete(null);
+        setDeleteSuccess(false);
+      }, 1500);
+      showToast(`Asset "${assetName}" has been successfully deleted.`, 'success');
+    } catch (err: any) {
+      showToast(err.response?.data?.detail || err.message || "Failed to delete asset.", 'error');
+      setSubmitting(false);
+    }
+  };
+
+  const executeSaveAsset = async () => {
     setSubmitting(true);
     setErrorMessage('');
+    
     try {
       const catName = newCategory || "Uncategorized";
       const payload = {
@@ -173,12 +211,19 @@ export function Assets() {
         setSelectedCategories(prev => [...prev, catName]);
       }
       
-      resetForm();
-      setShowModal(false);
-      setCurrentPage(1); // Jump back to first page
-      fetchAssets();
+      setSaveSuccess(true);
+      setTimeout(() => {
+        resetForm();
+        setShowSaveConfirmModal(false);
+        setShowModal(false);
+        setSaveSuccess(false);
+        setCurrentPage(1);
+        fetchAssets();
+      }, 1500);
+      showToast(editingAsset ? "Asset updated successfully!" : "New asset added successfully!", 'success');
     } catch (err: any) {
       console.error("Failed to save asset", err);
+      setShowSaveConfirmModal(false);
       if (err.response?.data?.detail) {
         setErrorMessage(err.response.data.detail);
       } else {
@@ -405,7 +450,7 @@ export function Assets() {
                               className="p-1.5 bg-[#3B82F6] text-white hover:bg-[#2563EB] rounded cursor-pointer shadow-sm transition-colors" title="Edit Asset">
                               <Edit2 size={15} strokeWidth={2.5} />
                             </button>
-                            <button className="p-1.5 bg-[#EF4444] text-white hover:bg-[#DC2626] rounded cursor-pointer shadow-sm transition-colors" title="Delete Asset">
+                            <button onClick={() => openDeleteModal(asset)} className="p-1.5 bg-[#EF4444] text-white hover:bg-[#DC2626] rounded cursor-pointer shadow-sm transition-colors" title="Delete Asset">
                               <Trash2 size={15} strokeWidth={2.5} />
                             </button>
                           </>
@@ -481,8 +526,8 @@ export function Assets() {
 
       {/* Add Asset Modal */}
       {showModal && createPortal(
-        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
-          <form onSubmit={handleSaveAsset} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
+          <form onSubmit={(e) => { e.preventDefault(); setShowSaveConfirmModal(true); }} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
               <div>
                 <div className="text-sm font-mono font-bold">{editingAsset ? 'Edit Asset' : 'Add New Asset'}</div>
@@ -574,26 +619,196 @@ export function Assets() {
                 />
               </div>
             </div>
-            <div className="flex gap-4 px-8 py-5 bg-[#FAFAFA] border-t border-[#E4E4E7] rounded-b-2xl">
+            <div className="flex justify-end gap-3 px-8 py-5 bg-[#FAFAFA] border-t border-[#E4E4E7] rounded-b-2xl">
               <button 
                 type="button"
-                onClick={() => {
-                  resetForm();
-                  setShowModal(false);
-                }} 
-                className="flex-1 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+                onClick={() => setShowCancelConfirmModal(true)} 
+                className="px-6 py-2.5 bg-linear-to-r from-[#DC2626] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#991B1B] text-white text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
               >
                 Cancel
               </button>
               <button 
                 type="submit"
-                disabled={submitting || !newName.trim() || !newStatus}
-                className="flex-1 py-2.5 bg-linear-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-mono font-bold rounded-lg transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                disabled={!newName.trim() || !newStatus}
+                className="px-6 py-2.5 bg-linear-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-mono font-bold rounded-lg transition-all shadow-sm disabled:opacity-50 cursor-pointer"
               >
-                {submitting ? 'Saving...' : 'Save Asset'}
+                {editingAsset ? 'Save Changes' : 'Add Asset'}
               </button>
             </div>
           </form>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && assetToDelete && createPortal(
+        <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {deleteSuccess ? (
+              <div className="px-6 py-10 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
+                <div className="w-14 h-14 bg-[#DCFCE7] rounded-full flex items-center justify-center mb-4 text-[#166534] shadow-sm">
+                  <CheckCircle2 size={30} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-lg font-mono font-bold text-[#18181B] mb-1">Deleted!</h3>
+                <p className="text-sm font-sans text-[#71717A]">Asset has been permanently removed.</p>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 bg-[#DC2626]">
+                  <h3 className="font-mono text-white text-base font-bold">Confirm Deletion</h3>
+                  <button 
+                    onClick={() => setShowDeleteModal(false)}
+                    className="text-white/80 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+                {/* Body */}
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                    Are you sure you want to delete <strong className="text-[#DC2626]">{assetToDelete.name}</strong>? This action cannot be undone.
+                  </p>
+                </div>
+                {/* Footer */}
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+                  <button 
+                    type="button"
+                    onClick={() => setShowDeleteModal(false)}
+                    disabled={submitting}
+                    className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={confirmDelete}
+                    disabled={submitting}
+                    className="px-5 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirmModal && createPortal(
+        <div className="fixed inset-0 z-999999 flex items-start justify-center p-4 pt-6 sm:pt-8 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F59E0B]">
+              <h3 className="font-mono text-white text-base font-bold">Discard Changes?</h3>
+              <button 
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                Are you sure you want to cancel? Any unsaved changes will be lost.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+              <button 
+                type="button"
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                No, Keep Editing
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCancelConfirmModal(false);
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                Yes, Discard
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Save Confirmation Modal */}
+      {showSaveConfirmModal && createPortal(
+        <div className="fixed inset-0 z-999999 flex items-start justify-center p-4 pt-6 sm:pt-8 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {saveSuccess ? (
+              <div className="px-6 py-10 flex flex-col items-center justify-center text-center animate-in zoom-in-95 duration-300">
+                <div className="w-14 h-14 bg-[#DCFCE7] rounded-full flex items-center justify-center mb-4 text-[#166534] shadow-sm">
+                  <CheckCircle2 size={30} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-lg font-mono font-bold text-[#18181B] mb-1">Saved!</h3>
+                <p className="text-sm font-sans text-[#71717A]">Asset data has been saved successfully.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between px-6 py-4 bg-[#10B981]">
+                  <h3 className="font-mono text-white text-base font-bold">Confirm Save</h3>
+                  <button 
+                    onClick={() => setShowSaveConfirmModal(false)}
+                    className="text-white/80 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                    Are you sure you want to save {editingAsset ? 'these changes' : 'this new asset'}?
+                  </p>
+                </div>
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+                  <button 
+                    type="button"
+                    onClick={() => setShowSaveConfirmModal(false)}
+                    disabled={submitting}
+                    className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={executeSaveAsset}
+                    disabled={submitting}
+                    className="px-5 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? 'Saving...' : 'Confirm Save'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Global Toast Notification */}
+      {toast && createPortal(
+        <div className="fixed bottom-6 right-6 z-999999 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border ${
+            toast.type === 'success' 
+              ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]' 
+              : 'bg-[#FEF2F2] border-[#FECACA] text-[#991B1B]'
+          }`}>
+            <div className={`p-1 rounded-full ${toast.type === 'success' ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}>
+              {toast.type === 'success' ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <X size={16} strokeWidth={3} />
+              )}
+            </div>
+            <p className="text-sm font-sans font-medium pr-2">{toast.message}</p>
+          </div>
         </div>,
         document.body
       )}

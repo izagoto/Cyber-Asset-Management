@@ -58,4 +58,16 @@ def update_asset(
         raise HTTPException(status_code=404, detail="Asset not found")
     return StandardResponse(status="success", message="Asset updated", data=asset)
 
+@router.delete("/{asset_id}", response_model=StandardResponse)
+def delete_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "SUPERVISOR"]))
+):
+    """Delete an asset (Admin only)"""
+    success = AssetService.delete(db, asset_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return StandardResponse(status="success", message="Asset deleted", data=None)
+
 # End of routes

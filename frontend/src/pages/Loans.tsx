@@ -582,7 +582,7 @@ export function Loans() {
 
       {/* Record Loan Modal */}
       {showRecordModal && createPortal(
-        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
           <div className="bg-white border border-[#E4E4E7] rounded-2xl w-full max-w-3xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[95vh]">
             
             {/* Modal Header */}
@@ -823,7 +823,7 @@ export function Loans() {
       {selectedLoanDetails && createPortal((() => {
         const details = parseLoanPurpose(selectedLoanDetails);
         return (
-          <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/45 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
             <div className="bg-white border border-[#E4E4E7] rounded-2xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200">
               
               {/* Modal Header */}
