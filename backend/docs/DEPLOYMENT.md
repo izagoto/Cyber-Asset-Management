@@ -117,15 +117,29 @@ Karena React adalah aplikasi Single Page Application (SPA), kita perlu mem-*buil
    npm install
    ```
 
-2. **Konfigurasi API URL:**
-   Secara default, Vite mungkin menggunakan `localhost` untuk mengambil data API. Di server, kita ingin Vite mengambil data dari jalur yang sama (misal `/api`). Pastikan konfigurasi `axios` di frontend mengarah ke Nginx (biasanya cukup dengan mengatur baseURL atau mengubah proxy).
-   Buka file koneksi API Anda (misal `axios.js` atau tempat inisialisasi API):
-   ```javascript
-   // Pastikan baseURL mengarah ke API eksternal atau Nginx Route
-   // baseURL: '/api'
+2. **Konfigurasi API URL (axios.ts):**
+   Hapus konfigurasi `baseURL` yang *hardcoded* (misal `http://127.0.0.1:8000`) di dalam file `src/api/axios.ts` agar *frontend* secara otomatis mengikuti domain/IP server saat ini (yang akan ditangani oleh Reverse Proxy Nginx).
+   ```typescript
+   // src/api/axios.ts
+   const api = axios.create({
+     // baseURL tidak perlu diisi (dihapus)
+     headers: { 'Content-Type': 'application/json' },
+   });
    ```
 
-3. **Build Frontend:**
+3. **Cegah Tabrakan Rute (Route Collision) di vite.config.ts:**
+   Secara *default*, Vite menaruh semua Javascript & CSS hasil *build* ke dalam folder `/assets/`. Karena di Nginx kita telah menjadikan `/assets` sebagai rute API Backend, kita wajib mengubah nama folder keluaran Vite (misalnya menjadi `static`) agar tidak tabrakan dan layar tidak menjadi putih polos. Buka `vite.config.ts` dan tambahkan `assetsDir`:
+   ```typescript
+   export default defineConfig({
+     plugins: [react(), tailwindcss()],
+     build: {
+       assetsDir: 'static', // Ubah dari 'assets' menjadi 'static'
+     }
+   })
+   ```
+
+4. **Build Frontend:**
+   Setelah kedua konfigurasi di atas disesuaikan, jalankan perintah kompilasi:
    ```bash
    npm run build
    ```
