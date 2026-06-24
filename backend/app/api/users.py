@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from app.models.user import User
@@ -111,6 +111,11 @@ def update_user(
     
     update_data = user_in.model_dump(exclude_unset=True)
     if "password" in update_data and update_data["password"]:
+        if verify_password(update_data["password"], user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password cannot be the same as the old password"
+            )
         update_data["password_hash"] = hash_password(update_data.pop("password"))
     elif "password" in update_data:
         update_data.pop("password")

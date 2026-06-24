@@ -3,16 +3,18 @@ import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import { 
   Users as UsersIcon, Plus, Edit2, Trash2, X, 
-  Eye, ChevronLeft, ChevronRight, CheckCircle2
+  Eye, EyeOff, ChevronLeft, ChevronRight, CheckCircle2, Search, Power
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import type { User } from '../types';
 import { CustomSelect, CustomMultiSelect } from '../components/CustomDropdown';
+import { useAuth } from '../context/AuthContext';
 
 export function Users() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(() => sessionStorage.getItem('users_showModal') === 'true');
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedUserForLogs, setSelectedUserForLogs] = useState<User | null>(null);
   const [selectedUserLogs, setSelectedUserLogs] = useState<any[] | null>(null);
@@ -40,13 +42,20 @@ export function Users() {
   const [fullname, setFullname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('ADMIN');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [role, setRole] = useState('Admin');
   const [division, setDivision] = useState('');
   const [phone, setPhone] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const fetchUsers = async () => {
@@ -66,6 +75,26 @@ export function Users() {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    if (showModal) sessionStorage.setItem('users_showModal', 'true');
+    else sessionStorage.removeItem('users_showModal');
+  }, [showModal]);
+
+  const resetForm = () => {
+    setFullname('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setRole('Admin');
+    setDivision('');
+    setPhone('');
+    setIsActive(true);
+    setErrorMessage('');
+    setFieldErrors({});
+  };
+
   const executeSaveUser = async () => {
     setSubmitting(true);
     setErrorMessage('');
@@ -77,7 +106,7 @@ export function Users() {
         role,
         division: division || null,
         phone: phone || null,
-        is_active: true
+        is_active: isActive
       };
 
       if (editingUser) {
@@ -88,12 +117,7 @@ export function Users() {
       
       setSaveSuccess(true);
       setTimeout(() => {
-        setFullname('');
-        setEmail('');
-        setPassword('');
-        setRole('ADMIN');
-        setDivision('');
-        setPhone('');
+        resetForm();
         setShowSaveConfirmModal(false);
         setShowModal(false);
         setSaveSuccess(false);
@@ -103,19 +127,41 @@ export function Users() {
     } catch (err: any) {
       console.error("Failed to save user", err);
       setShowSaveConfirmModal(false);
-      setErrorMessage(err.response?.data?.detail || err.response?.data?.message || "Failed to create user. Please check if email is unique.");
+      
+      let errorMsg = "Failed to create user. Please check if email is unique.";
+      if (err.response?.data?.detail) {
+        if (Array.isArray(err.response.data.detail)) {
+          errorMsg = err.response.data.detail.map((e: any) => e.msg).join(', ');
+        } else {
+          errorMsg = err.response.data.detail;
+        }
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      
+      setErrorMessage(errorMsg);
       setSubmitting(false);
     }
   };
 
-  const handleDeleteUser = async (user: User) => {
-    if (!window.confirm(`Are you sure you want to delete user ${user.fullname}?`)) return;
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setShowDeleteConfirmModal(true);
+  };
+
+  const executeDeleteUser = async () => {
+    if (!userToDelete) return;
+    setSubmitting(true);
     try {
-      await api.delete(`/users/${user.id}`);
+      await api.delete(`/users/${userToDelete.id}`);
       fetchUsers();
+      setShowDeleteConfirmModal(false);
+      setUserToDelete(null);
     } catch (err) {
       console.error(err);
       alert("Failed to delete user");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -185,13 +231,13 @@ export function Users() {
             <button
               onClick={() => {
                 setEditingUser(null);
-                setFullname(''); setEmail(''); setPassword(''); setRole('ADMIN'); setDivision(''); setPhone('');
+                setFullname(''); setEmail(''); setPassword(''); setRole('Admin'); setDivision(''); setPhone('');
                 setErrorMessage('');
                 setShowModal(true);
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white border border-[#DC2626] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
             >
-              <Plus size={13} /> Add New User
+              <Plus size={13} /> Add User
             </button>
           </div>
         </div>
@@ -220,6 +266,7 @@ export function Users() {
           {/* Search bar */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] group-focus-within:text-[#DC2626] transition-colors" size={14} />
               <input
                 type="text"
                 placeholder="Filter in records..."
@@ -228,7 +275,7 @@ export function Users() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-64 sm:w-80 bg-white border border-[#E4E4E7] rounded pl-4 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
+                className="w-64 sm:w-80 bg-white border border-[#E4E4E7] rounded pl-9 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
               />
               {searchQuery && (
                 <button 
@@ -275,6 +322,7 @@ export function Users() {
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">User</th>
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">Department / Division</th>
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">Contact</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap w-24">Status</th>
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap w-32">Role</th>
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#18181B] whitespace-nowrap w-28">Action</th>
                 </tr>
@@ -292,7 +340,7 @@ export function Users() {
                           <div className={[
                             "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 shadow-xs",
                             "w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0",
-                            user.role === "ADMIN"
+                            user.role === "Admin"
                               ? "bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626]"
                               : "bg-[#F4F4F5] border border-[#E4E4E7] text-[#71717A]",
                           ].join(" ")}>
@@ -309,11 +357,22 @@ export function Users() {
                         {user.phone && <div className="text-[13px] text-[#6B7280]">{user.phone}</div>}
                       </td>
                       <td className="px-6 py-4">
-                        {user.role === "ADMIN" ? (
+                        {user.is_active === false ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-[#A1A1AA]/50 text-[#71717A] bg-[#F4F4F5]">
+                            Inactive
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-emerald-500/30 text-emerald-600 bg-emerald-500/5">
+                            Active
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.role === "Admin" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-[#DC2626]/30 text-[#DC2626] bg-[#DC2626]/5">
                             Admin
                           </span>
-                        ) : user.role === "SUPERVISOR" ? (
+                        ) : user.role === "Supervisor" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-purple-500/30 text-purple-600 bg-purple-500/5">
                             Supervisor
                           </span>
@@ -333,6 +392,7 @@ export function Users() {
                               setRole(user.role);
                               setDivision(user.division || '');
                               setPhone(user.phone || '');
+                              setIsActive(user.is_active !== undefined ? user.is_active : true);
                               setErrorMessage('');
                               setShowModal(true);
                             }}
@@ -345,8 +405,36 @@ export function Users() {
                             <Eye size={15} strokeWidth={2.5} />
                           </button>
                           <button 
+                            onClick={async () => {
+                              try {
+                                await api.patch(`/users/${user.id}`, { is_active: user.is_active === false ? true : false });
+                                fetchUsers();
+                              } catch (err) {
+                                console.error("Failed to toggle status", err);
+                              }
+                            }}
+                            disabled={user.id === currentUser?.id}
+                            className={`p-1.5 rounded shadow-sm transition-colors ${
+                              user.id === currentUser?.id
+                                ? "bg-[#F4F4F5] text-[#A1A1AA] cursor-not-allowed"
+                                : user.is_active === false
+                                  ? "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer"
+                                  : "bg-[#F59E0B] text-white hover:bg-[#D97706] cursor-pointer"
+                            }`} 
+                            title={user.is_active === false ? "Activate User" : "Deactivate User"}
+                          >
+                            <Power size={15} strokeWidth={2.5} />
+                          </button>
+                          <button 
                             onClick={() => handleDeleteUser(user)}
-                            className="p-1.5 bg-[#EF4444] text-white hover:bg-[#DC2626] rounded cursor-pointer shadow-sm transition-colors" title="Delete User">
+                            disabled={user.id === currentUser?.id}
+                            className={`p-1.5 rounded shadow-sm transition-colors ${
+                              user.id === currentUser?.id
+                                ? "bg-[#F4F4F5] text-[#A1A1AA] cursor-not-allowed"
+                                : "bg-[#EF4444] text-white hover:bg-[#DC2626] cursor-pointer"
+                            }`} 
+                            title={user.id === currentUser?.id ? "Cannot delete currently logged-in user" : "Delete User"}
+                          >
                             <Trash2 size={15} strokeWidth={2.5} />
                           </button>
                         </div>
@@ -356,7 +444,7 @@ export function Users() {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-16 text-center text-xs font-mono text-[#71717A]">
+                    <td colSpan={6} className="px-6 py-16 text-center text-xs font-mono text-[#71717A]">
                       No users found.
                     </td>
                   </tr>
@@ -420,14 +508,43 @@ export function Users() {
       {/* Add User Modal */}
       {showModal && createPortal(
         <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
-          <form onSubmit={(e) => { e.preventDefault(); setShowSaveConfirmModal(true); }} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
+          <form noValidate onSubmit={(e) => { 
+            e.preventDefault(); 
+            const errors: Record<string, string> = {};
+            
+            if (!fullname.trim()) {
+              errors.fullname = "Full Name is required.";
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+              errors.email = "Please enter a valid email address.";
+            }
+            
+            if (!editingUser && !password.trim()) {
+              errors.password = "Password is required.";
+            } else if (password && password.length < 6) {
+              errors.password = "Password must be at least 6 characters long.";
+            } else if (password && password !== confirmPassword) {
+              errors.confirmPassword = "Passwords do not match.";
+            }
+
+            if (Object.keys(errors).length > 0) {
+              setFieldErrors(errors);
+              return;
+            }
+            
+            setFieldErrors({});
+            setErrorMessage('');
+            setShowSaveConfirmModal(true); 
+          }} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in duration-200">
             <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
               <div>
-                <div className="text-sm font-mono font-bold">{editingUser ? 'Edit User' : 'Add New User'}</div>
+                <div className="text-sm font-mono font-bold">{editingUser ? 'Edit User' : 'Add User'}</div>
               </div>
               <button 
                 type="button"
-                onClick={() => setShowModal(false)} 
+                onClick={() => setShowCancelConfirmModal(true)} 
                 className="text-[#71717A] hover:text-[#18181B] hover:bg-[#E4E4E7] rounded transition-all p-1"
               >
                 <X size={15} />
@@ -443,32 +560,73 @@ export function Users() {
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Full Name</label>
                 <input
                   type="text"
-                  required
                   value={fullname}
-                  onChange={(e) => setFullname(e.target.value)}
-                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                  onChange={(e) => {
+                    setFullname(e.target.value);
+                    if (fieldErrors.fullname) setFieldErrors(prev => ({ ...prev, fullname: '' }));
+                  }}
+                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 transition-all ${fieldErrors.fullname ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
                 />
+                {fieldErrors.fullname && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.fullname}</span>}
               </div>
-              <div className="col-span-1">
+              <div className="col-span-1 sm:col-span-2">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Email Address</label>
                 <input
                   type="email"
-                  required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' }));
+                  }}
+                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 transition-all ${fieldErrors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
                 />
+                {fieldErrors.email && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.email}</span>}
               </div>
               <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Password</label>
-                <input
-                  type="password"
-                  required={!editingUser}
-                  placeholder={editingUser ? "(Leave blank to keep current password)" : ""}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder={editingUser ? "(Leave blank to keep current password)" : ""}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' }));
+                    }}
+                    className={`w-full bg-[#FFFFFF] border rounded-lg pl-3 pr-10 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 transition-all ${fieldErrors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] hover:text-[#18181B] transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                {fieldErrors.password && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.password}</span>}
+              </div>
+              <div className="col-span-1">
+                <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Confirm Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder={editingUser ? "(Leave blank if not changing password)" : ""}
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (fieldErrors.confirmPassword) setFieldErrors(prev => ({ ...prev, confirmPassword: '' }));
+                    }}
+                    className={`w-full bg-[#FFFFFF] border rounded-lg pl-3 pr-10 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 transition-all ${fieldErrors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] hover:text-[#18181B] transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                {fieldErrors.confirmPassword && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.confirmPassword}</span>}
               </div>
               <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Role</label>
@@ -476,8 +634,8 @@ export function Users() {
                   value={role}
                   onChange={(val) => setRole(val as string)}
                   options={[
-                    { value: 'ADMIN', label: 'Admin' },
-                    { value: 'SUPERVISOR', label: 'Supervisor' }
+                    { value: 'Admin', label: 'Admin' },
+                    { value: 'Supervisor', label: 'Supervisor' }
                   ]}
                   className="w-full h-[38px] [&>button]:h-full"
                 />
@@ -491,13 +649,25 @@ export function Users() {
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                 />
               </div>
-              <div className="col-span-1 sm:col-span-2">
+              <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Phone Number</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                />
+              </div>
+              <div className="col-span-1">
+                <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Status</label>
+                <CustomSelect
+                  value={isActive ? "ACTIVE" : "INACTIVE"}
+                  onChange={(val) => setIsActive(val === "ACTIVE")}
+                  options={[
+                    { value: 'ACTIVE', label: 'Active' },
+                    { value: 'INACTIVE', label: 'Inactive' }
+                  ]}
+                  className="w-full h-[38px] [&>button]:h-full"
                 />
               </div>
             </div>
@@ -609,12 +779,7 @@ export function Users() {
                 onClick={() => {
                   setShowCancelConfirmModal(false);
                   setShowModal(false);
-                  setFullname('');
-                  setEmail('');
-                  setPassword('');
-                  setRole('ADMIN');
-                  setDivision('');
-                  setPhone('');
+                  resetForm();
                 }}
                 className="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
               >
@@ -674,6 +839,52 @@ export function Users() {
                 </div>
               </>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && createPortal(
+        <div className="fixed inset-0 z-999999 flex items-start justify-center p-4 pt-6 sm:pt-8 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-[#DC2626]">
+              <h3 className="font-mono text-white text-base font-bold">Delete User?</h3>
+              <button 
+                onClick={() => {
+                  setShowDeleteConfirmModal(false);
+                  setUserToDelete(null);
+                }}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                Are you sure you want to delete user <strong>{userToDelete?.fullname}</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirmModal(false);
+                  setUserToDelete(null);
+                }}
+                disabled={submitting}
+                className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeDeleteUser}
+                disabled={submitting}
+                className="px-5 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {submitting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>,
         document.body

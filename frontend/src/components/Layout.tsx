@@ -10,7 +10,7 @@ const navGroups = [
   {
     title: "Main Menu",
     items: [
-      { id: "dashboard", path: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+      { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     ]
   },
   {
@@ -29,7 +29,7 @@ const navGroups = [
 ];
 
 const pageLabels: Record<string, string> = {
-  "/": "Dashboard",
+  "/dashboard": "Dashboard",
   "/assets": "Asset Inventory",
   "/loans": "Loan Tracking",
   "/users": "User Management",

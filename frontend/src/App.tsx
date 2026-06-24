@@ -78,14 +78,15 @@ function AppRouter() {
           }
         >
           {/* Menu Utama (Bisa diakses Admin & User) */}
-          <Route index element={<Dashboard />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="loans" element={<Loans />} />
 
           {/* Menu Khusus Admin */}
           <Route 
             path="assets" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+              <ProtectedRoute allowedRoles={['Admin']}>
                 <Assets />
               </ProtectedRoute>
             } 
@@ -93,7 +94,7 @@ function AppRouter() {
           <Route 
             path="users" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+              <ProtectedRoute allowedRoles={['Admin']}>
                 <Users />
               </ProtectedRoute>
             } 

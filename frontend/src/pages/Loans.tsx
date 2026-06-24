@@ -5,14 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Check, CheckCircle, X, Plus,
   ChevronLeft, ChevronRight, ShieldCheck, Calendar, Eye,
-  ArrowLeftRight
+  ArrowLeftRight, Search
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { SearchableSelect, CustomMultiSelect, CustomSelect } from '../components/CustomDropdown';
 
 export function Loans() {
   const { isAdmin } = useAuth();
-  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(() => sessionStorage.getItem('loans_showRecordModal') === 'true');
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [step, setStep] = useState(1);
   const [assets, setAssets] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
@@ -30,6 +31,7 @@ export function Loans() {
   
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Search & Pagination States (Admin View)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -52,6 +54,11 @@ export function Loans() {
     if (selectedDivisions.length > 0) params.set('divisions', selectedDivisions.join(','));
     setSearchParams(params, { replace: true });
   }, [searchQuery, currentPage, entriesPerPage, adminTab, selectedStatuses, selectedDivisions, setSearchParams]);
+
+  useEffect(() => {
+    if (showRecordModal) sessionStorage.setItem('loans_showRecordModal', 'true');
+    else sessionStorage.removeItem('loans_showRecordModal');
+  }, [showRecordModal]);
 
   const steps = ["Borrower Info", "Asset & Time", "Review & Submit"];
 
@@ -133,6 +140,7 @@ export function Loans() {
       setPurpose('');
       setQuantity(1);
       setShowRecordModal(false);
+      setFieldErrors({});
       
       setCurrentPage(1); // Jump back to first page
       setTimeout(() => setSuccess(false), 5000);
@@ -228,10 +236,6 @@ export function Loans() {
   const indexOfLastLoan = currentPage * entriesPerPage;
   const indexOfFirstLoan = indexOfLastLoan - entriesPerPage;
   const currentLoans = filteredAdminLoans.slice(indexOfFirstLoan, indexOfLastLoan);
-
-  // Form Validation per Step
-  const isStep1Valid = borrowerName.trim() !== '' && borrowerDivision.trim() !== '' && borrowerPhone.trim() !== '';
-  const isStep2Valid = selectedAssetId !== '' && loanDate !== '' && expectedReturnDate !== '' && purpose.trim() !== '';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -404,6 +408,7 @@ export function Loans() {
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] group-focus-within:text-[#DC2626] transition-colors" size={14} />
                         <input
                           type="text"
                           placeholder="Filter in records..."
@@ -412,7 +417,7 @@ export function Loans() {
                             setSearchQuery(e.target.value);
                             setCurrentPage(1);
                           }}
-                          className="w-full sm:w-80 bg-white border border-[#E4E4E7] rounded pl-4 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
+                          className="w-full sm:w-80 bg-white border border-[#E4E4E7] rounded pl-9 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
                         />
                         {searchQuery && (
                           <button 
@@ -591,7 +596,7 @@ export function Loans() {
                 <h3 className="text-sm font-bold font-mono">Record New Loan</h3>
               </div>
               <button 
-                onClick={() => setShowRecordModal(false)}
+                onClick={() => setShowCancelConfirmModal(true)}
                 className="p-1 hover:bg-[#E4E4E7] rounded transition-all cursor-pointer text-[#71717A] hover:text-[#18181B]"
               >
                 <X size={16} />
@@ -644,41 +649,54 @@ export function Loans() {
                         <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Name</label>
                         <input 
                           type="text" 
-                          required
                           value={borrowerName}
-                          onChange={(e) => setBorrowerName(e.target.value)}
-                          className="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] placeholder-[#A1A1AA] transition-all" 
+                          onChange={(e) => {
+                            setBorrowerName(e.target.value);
+                            if (fieldErrors.borrowerName) setFieldErrors(prev => ({ ...prev, borrowerName: '' }));
+                          }}
+                          className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
                         />
+                        {fieldErrors.borrowerName && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerName}</span>}
                       </div>
                       <div>
                         <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Phone Number</label>
                         <input 
                           type="text" 
-                          required
                           value={borrowerPhone}
-                          onChange={(e) => setBorrowerPhone(e.target.value)}
-                          className="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] placeholder-[#A1A1AA] transition-all" 
+                          onChange={(e) => {
+                            setBorrowerPhone(e.target.value);
+                            if (fieldErrors.borrowerPhone) setFieldErrors(prev => ({ ...prev, borrowerPhone: '' }));
+                          }}
+                          className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
                         />
+                        {fieldErrors.borrowerPhone && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerPhone}</span>}
                       </div>
                     </div>
                     <div>
                       <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Division</label>
                       <input 
                         type="text" 
-                        required
                         value={borrowerDivision}
-                        onChange={(e) => setBorrowerDivision(e.target.value)}
-                        className="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] placeholder-[#A1A1AA] transition-all" 
+                        onChange={(e) => {
+                          setBorrowerDivision(e.target.value);
+                          if (fieldErrors.borrowerDivision) setFieldErrors(prev => ({ ...prev, borrowerDivision: '' }));
+                        }}
+                        className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerDivision ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
                       />
+                      {fieldErrors.borrowerDivision && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerDivision}</span>}
                     </div>
                     <div>
                       <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Email (Optional)</label>
                       <input 
                         type="email" 
                         value={borrowerEmail}
-                        onChange={(e) => setBorrowerEmail(e.target.value)}
-                        className="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] placeholder-[#A1A1AA] transition-all" 
+                        onChange={(e) => {
+                          setBorrowerEmail(e.target.value);
+                          if (fieldErrors.borrowerEmail) setFieldErrors(prev => ({ ...prev, borrowerEmail: '' }));
+                        }}
+                        className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerEmail ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
                       />
+                      {fieldErrors.borrowerEmail && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerEmail}</span>}
                     </div>
                   </div>
                 )}
@@ -691,7 +709,10 @@ export function Loans() {
                         <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Asset to Borrow</label>
                         <SearchableSelect
                           value={selectedAssetId}
-                          onChange={(val) => setSelectedAssetId(val as string)}
+                          onChange={(val) => {
+                            setSelectedAssetId(val as string);
+                            if (fieldErrors.selectedAssetId) setFieldErrors(prev => ({ ...prev, selectedAssetId: '' }));
+                          }}
                           placeholder="Select available device..."
                           options={assets
                             .filter((a) => (a.available_quantity ?? a.quantity) > 0 && a.status !== 'LOST' && a.status !== 'MISSING')
@@ -705,7 +726,9 @@ export function Loans() {
                               };
                             })
                           }
+                          className={fieldErrors.selectedAssetId ? '[&>button]:border-red-500' : ''}
                         />
+                        {fieldErrors.selectedAssetId && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.selectedAssetId}</span>}
                       </div>
                       <div>
                         <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Quantity to Borrow</label>
@@ -713,11 +736,14 @@ export function Loans() {
                           type="number" 
                           min="1"
                           max={selectedAssetId ? (assets.find(a => a.id === parseInt(selectedAssetId))?.available_quantity ?? assets.find(a => a.id === parseInt(selectedAssetId))?.quantity) : 1}
-                          required
                           value={quantity}
-                          onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                          className="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] transition-all" 
+                          onChange={(e) => {
+                            setQuantity(parseInt(e.target.value) || 1);
+                            if (fieldErrors.quantity) setFieldErrors(prev => ({ ...prev, quantity: '' }));
+                          }}
+                          className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.quantity ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
                         />
+                        {fieldErrors.quantity && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.quantity}</span>}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -725,16 +751,24 @@ export function Loans() {
                         <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Loan Date</label>
                         <CustomDatePicker 
                           value={loanDate} 
-                          onChange={setLoanDate} 
+                          onChange={(val) => {
+                            setLoanDate(val);
+                            if (fieldErrors.loanDate) setFieldErrors(prev => ({ ...prev, loanDate: '' }));
+                          }} 
                         />
+                        {fieldErrors.loanDate && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.loanDate}</span>}
                       </div>
                       <div>
                         <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Return Date</label>
                         <CustomDatePicker 
                           value={expectedReturnDate} 
-                          onChange={setExpectedReturnDate} 
+                          onChange={(val) => {
+                            setExpectedReturnDate(val);
+                            if (fieldErrors.expectedReturnDate) setFieldErrors(prev => ({ ...prev, expectedReturnDate: '' }));
+                          }} 
                           minDate={loanDate}
                         />
+                        {fieldErrors.expectedReturnDate && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.expectedReturnDate}</span>}
                       </div>
                     </div>
                     <div>
@@ -742,9 +776,13 @@ export function Loans() {
                       <textarea
                         rows={8}
                         value={purpose}
-                        onChange={(e) => setPurpose(e.target.value)}
-                        className="w-full bg-white border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] transition-all"
+                        onChange={(e) => {
+                          setPurpose(e.target.value);
+                          if (fieldErrors.purpose) setFieldErrors(prev => ({ ...prev, purpose: '' }));
+                        }}
+                        className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.purpose ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
                       />
+                      {fieldErrors.purpose && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.purpose}</span>}
                     </div>
                   </div>
                 )}
@@ -792,16 +830,42 @@ export function Loans() {
                   )}
                   <button
                     onClick={() => {
-                      if (step === 1 && !isStep1Valid) return;
-                      if (step === 2 && !isStep2Valid) return;
-                      
-                      if (step < 3) {
-                        setStep((s) => s + 1);
+                      if (step === 1) {
+                        const errors: Record<string, string> = {};
+                        if (!borrowerName.trim()) errors.borrowerName = "Borrower Name is required.";
+                        if (!borrowerPhone.trim()) errors.borrowerPhone = "Borrower Phone is required.";
+                        if (!borrowerDivision.trim()) errors.borrowerDivision = "Borrower Division is required.";
+                        if (borrowerEmail) {
+                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                          if (!emailRegex.test(borrowerEmail)) {
+                            errors.borrowerEmail = "Please enter a valid email address.";
+                          }
+                        }
+                        if (Object.keys(errors).length > 0) {
+                          setFieldErrors(errors);
+                          return;
+                        }
+                        setFieldErrors({});
+                        setStep(2);
+                      } else if (step === 2) {
+                        const errors: Record<string, string> = {};
+                        if (!selectedAssetId) errors.selectedAssetId = "Asset is required.";
+                        if (!quantity || quantity < 1) errors.quantity = "Quantity must be at least 1.";
+                        if (!loanDate) errors.loanDate = "Loan Date is required.";
+                        if (!expectedReturnDate) errors.expectedReturnDate = "Return Date is required.";
+                        if (!purpose.trim()) errors.purpose = "Description is required.";
+                        
+                        if (Object.keys(errors).length > 0) {
+                          setFieldErrors(errors);
+                          return;
+                        }
+                        setFieldErrors({});
+                        setStep(3);
                       } else {
                         handleSubmit();
                       }
                     }}
-                    disabled={submitting || (step === 1 && !isStep1Valid) || (step === 2 && !isStep2Valid)}
+                    disabled={submitting}
                     className={`px-8 py-2.5 text-white text-xs font-mono font-bold rounded-lg shadow-sm transition-all disabled:opacity-50 cursor-pointer ${
                       step === 3 
                         ? "bg-linear-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857]" 
@@ -924,6 +988,57 @@ export function Loans() {
           </div>
         );
       })(), document.body)}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirmModal && createPortal(
+        <div className="fixed inset-0 z-999999 flex items-start justify-center p-4 pt-6 sm:pt-8 bg-black/45 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 bg-[#F59E0B]">
+              <h3 className="font-mono text-white text-base font-bold">Discard Changes?</h3>
+              <button 
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm font-mono text-[#3F3F46] leading-relaxed">
+                Are you sure you want to cancel? Any unsaved changes will be lost.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#E4E4E7] bg-[#FAFAFA]">
+              <button 
+                type="button"
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="px-5 py-2.5 bg-[#6B7280] hover:bg-[#4B5563] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                No, Keep Editing
+              </button>
+              <button 
+                onClick={() => {
+                  setShowCancelConfirmModal(false);
+                  setShowRecordModal(false);
+                  setStep(1);
+                  setBorrowerName('');
+                  setBorrowerDivision('');
+                  setBorrowerPhone('');
+                  setBorrowerEmail('');
+                  setSelectedAssetId('');
+                  setExpectedReturnDate('');
+                  setPurpose('');
+                  setQuantity(1);
+                  setFieldErrors({});
+                }}
+                className="px-5 py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+              >
+                Yes, Discard
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

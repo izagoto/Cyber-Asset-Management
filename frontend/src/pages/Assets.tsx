@@ -4,7 +4,7 @@ import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { 
   Plus, Download, Edit2, Trash2, X, 
-  ChevronLeft, ChevronRight, Database, CheckCircle2
+  ChevronLeft, ChevronRight, Database, CheckCircle2, Search
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import type { Asset } from '../types';
@@ -36,7 +36,7 @@ export function Assets() {
   const { isAdmin } = useAuth();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(() => sessionStorage.getItem('assets_showModal') === 'true');
   
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -58,6 +58,11 @@ export function Assets() {
     setSearchParams(params, { replace: true });
   }, [searchQuery, currentPage, entriesPerPage, selectedCategories, setSearchParams]);
 
+  useEffect(() => {
+    if (showModal) sessionStorage.setItem('assets_showModal', 'true');
+    else sessionStorage.removeItem('assets_showModal');
+  }, [showModal]);
+
   // Modal form states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
@@ -74,6 +79,7 @@ export function Assets() {
   const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   
   // Toast Notification State
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -92,6 +98,7 @@ export function Assets() {
     setNewStatus('');
     setEditingAsset(null);
     setErrorMessage('');
+    setFieldErrors({});
   };
 
   const filterInitializedRef = useRef(false);
@@ -271,16 +278,16 @@ export function Assets() {
           <div className="flex items-center gap-3 shrink-0">
             <button 
               onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#107C41]/5 hover:bg-[#107C41]/10 border border-[#107C41]/20 text-[#107C41] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#107C41] hover:bg-[#0C6A36] text-white border border-[#107C41] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
             >
-              <Download size={13} className="text-[#107C41]" /> Export CSV
+              <Download size={13} className="text-white" /> Export CSV
             </button>
             {isAdmin && (
               <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white border border-[#DC2626] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
               >
-                <Plus size={13} /> Add New Asset
+                <Plus size={13} /> Add Asset
               </button>
             )}
           </div>
@@ -344,6 +351,7 @@ export function Assets() {
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
             <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] group-focus-within:text-[#DC2626] transition-colors" size={14} />
               <input
                 type="text"
                 placeholder="Filter in records..."
@@ -352,7 +360,7 @@ export function Assets() {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-64 sm:w-80 bg-white border border-[#E4E4E7] rounded pl-4 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
+                className="w-64 sm:w-80 bg-white border border-[#E4E4E7] rounded pl-9 pr-8 py-2 text-sm text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] transition-colors"
               />
               {searchQuery && (
                 <button 
@@ -527,17 +535,29 @@ export function Assets() {
       {/* Add Asset Modal */}
       {showModal && createPortal(
         <div className="fixed inset-0 z-99999 flex items-start justify-center p-4 pt-2 sm:pt-4 overflow-y-auto bg-black/45 animate-in fade-in duration-200">
-          <form onSubmit={(e) => { e.preventDefault(); setShowSaveConfirmModal(true); }} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in-95 duration-200">
+          <form noValidate onSubmit={(e) => { 
+            e.preventDefault(); 
+            const errors: Record<string, string> = {};
+            if (!newName.trim()) errors.newName = "Asset Name is required.";
+            if (!newQuantity || newQuantity < 1) errors.newQuantity = "Quantity must be at least 1.";
+            if (!newStatus) errors.newStatus = "Status is required.";
+            
+            if (Object.keys(errors).length > 0) {
+              setFieldErrors(errors);
+              return;
+            }
+            
+            setFieldErrors({});
+            setErrorMessage('');
+            setShowSaveConfirmModal(true); 
+          }} className="bg-[#FFFFFF] border border-[#E4E4E7] rounded-2xl w-full max-w-4xl shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-8 py-5 bg-[#FAFAFA] border-b border-[#E4E4E7] text-[#18181B] rounded-t-2xl">
               <div>
-                <div className="text-sm font-mono font-bold">{editingAsset ? 'Edit Asset' : 'Add New Asset'}</div>
+                <div className="text-sm font-mono font-bold">{editingAsset ? 'Edit Asset' : 'Add Asset'}</div>
               </div>
               <button 
                 type="button"
-                onClick={() => {
-                  resetForm();
-                  setShowModal(false);
-                }} 
+                onClick={() => setShowCancelConfirmModal(true)} 
                 className="text-[#71717A] hover:text-[#18181B] hover:bg-[#E4E4E7] rounded transition-all p-1"
               >
                 <X size={15} />
@@ -553,11 +573,14 @@ export function Assets() {
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Asset Name</label>
                 <input
                   type="text"
-                  required
                   value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                  onChange={(e) => {
+                    setNewName(e.target.value);
+                    if (fieldErrors.newName) setFieldErrors(prev => ({ ...prev, newName: '' }));
+                  }}
+                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:ring-2 transition-all ${fieldErrors.newName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
                 />
+                {fieldErrors.newName && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.newName}</span>}
               </div>
               <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Category</label>
@@ -585,17 +608,23 @@ export function Assets() {
                 <input
                   type="number"
                   min="1"
-                  required
                   value={newQuantity}
-                  onChange={(e) => setNewQuantity(parseInt(e.target.value) || 1)}
-                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                  onChange={(e) => {
+                    setNewQuantity(parseInt(e.target.value) || 1);
+                    if (fieldErrors.newQuantity) setFieldErrors(prev => ({ ...prev, newQuantity: '' }));
+                  }}
+                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.newQuantity ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
                 />
+                {fieldErrors.newQuantity && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.newQuantity}</span>}
               </div>
               <div className="col-span-1">
                 <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Status</label>
                 <CustomSelect
                   value={newStatus}
-                  onChange={(val) => setNewStatus(val as string)}
+                  onChange={(val) => {
+                    setNewStatus(val as string);
+                    if (fieldErrors.newStatus) setFieldErrors(prev => ({ ...prev, newStatus: '' }));
+                  }}
                   options={[
                     { value: '', label: 'Select Status...' },
                     { value: 'AVAILABLE', label: 'Available' },
@@ -603,8 +632,9 @@ export function Assets() {
                     { value: 'MAINTENANCE', label: 'Maintenance' },
                     { value: 'LOST', label: 'Lost' }
                   ]}
-                  className="w-full h-[38px] [&>button]:h-full"
+                  className={`w-full h-[38px] [&>button]:h-full ${fieldErrors.newStatus ? '[&>button]:border-red-500' : ''}`}
                 />
+                {fieldErrors.newStatus && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.newStatus}</span>}
               </div>
               <div className="col-span-1 sm:col-span-2">
                 <label className="text-[10px] font-mono text-[#71717A] flex items-center justify-between mb-1.5 tracking-wider">
