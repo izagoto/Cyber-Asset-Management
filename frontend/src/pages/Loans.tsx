@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Check, CheckCircle, X, Plus,
+  Check, CheckCircle, X, Plus, Edit2,
   ChevronLeft, ChevronRight, ShieldCheck, Calendar, Eye,
   ArrowLeftRight, Search
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { SearchableSelect, CustomMultiSelect, CustomSelect } from '../components/CustomDropdown';
+import type { User, Borrower } from '../types';
 
 export function Loans() {
   const { isAdmin } = useAuth();
@@ -17,12 +18,18 @@ export function Loans() {
   const [step, setStep] = useState(1);
   const [assets, setAssets] = useState<any[]>([]);
   const [loans, setLoans] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [borrowers, setBorrowers] = useState<Borrower[]>([]);
   
   // Form State
-  const [borrowerName, setBorrowerName] = useState('');
-  const [borrowerDivision, setBorrowerDivision] = useState('');
-  const [borrowerPhone, setBorrowerPhone] = useState('');
-  const [borrowerEmail, setBorrowerEmail] = useState('');
+  const [borrowerId, setBorrowerId] = useState<number | null>(null);
+  const [editingBorrowerInline, setEditingBorrowerInline] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDivision, setEditDivision] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [recordedByUserId, setRecordedByUserId] = useState<number | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState('');
   const [loanDate, setLoanDate] = useState(new Date().toISOString().split('T')[0]);
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
@@ -32,6 +39,13 @@ export function Loans() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const [showQuickAddBorrower, setShowQuickAddBorrower] = useState(false);
+  const [quickBorrowerName, setQuickBorrowerName] = useState('');
+  const [quickBorrowerDivision, setQuickBorrowerDivision] = useState('');
+  const [quickBorrowerPhone, setQuickBorrowerPhone] = useState('');
+  const [quickBorrowerEmail, setQuickBorrowerEmail] = useState('');
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
 
   // Search & Pagination States (Admin View)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,16 +84,145 @@ export function Loans() {
       ]);
       setAssets(assetsRes.data.data ?? []);
       const loansData = loansRes.data.data ?? [];
-      loansData.sort((a: any, b: any) => b.id - a.id);
+      loansData.sort((a: any, b: any) => a.id - b.id);
       setLoans(loansData);
     } catch (e) {
       console.error("Failed to fetch data", e);
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/users');
+      setUsers(res.data.data ?? []);
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    }
+  };
+
+  const fetchBorrowers = async () => {
+    try {
+      const res = await api.get('/borrowers/active');
+      setBorrowers(res.data.data ?? []);
+    } catch (e) {
+      console.error("Failed to fetch borrowers", e);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchUsers();
+    fetchBorrowers();
   }, []);
+
+  useEffect(() => {
+    setEditingBorrowerInline(false);
+  }, [borrowerId]);
+
+  const handleQuickAddBorrower = async () => {
+    setQuickAddSubmitting(true);
+    setFieldErrors({});
+    
+    try {
+      const errors: Record<string, string> = {};
+      if (!quickBorrowerName.trim()) errors.quickBorrowerName = "Borrower name is required.";
+      if (!quickBorrowerDivision.trim()) errors.quickBorrowerDivision = "Division is required.";
+      if (!quickBorrowerPhone.trim()) {
+        errors.quickBorrowerPhone = "Phone number is required.";
+      } else {
+        const normalizedPhone = quickBorrowerPhone.trim().toLowerCase();
+        const duplicatePhone = borrowers.some(b => (b.phone || '').toLowerCase() === normalizedPhone);
+        if (duplicatePhone) {
+          errors.quickBorrowerPhone = "This phone number is already registered.";
+        }
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setQuickAddSubmitting(false);
+        return;
+      }
+      
+      const payload = {
+        name: quickBorrowerName,
+        division: quickBorrowerDivision,
+        phone: quickBorrowerPhone,
+        email: quickBorrowerEmail || '',
+        is_active: true
+      };
+      
+      const res = await api.post('/borrowers', payload);
+      const newBorrower = res.data.data;
+      
+      setBorrowers(prev => [...prev, newBorrower]);
+      setBorrowerId(newBorrower.id);
+      setShowQuickAddBorrower(false);
+      setQuickBorrowerName('');
+      setQuickBorrowerDivision('');
+      setQuickBorrowerPhone('');
+      setQuickBorrowerEmail('');
+    } catch (err: any) {
+      console.error("Failed to quick add borrower", err);
+      if (err.response?.data?.detail) {
+        setFieldErrors({ quickBorrowerName: err.response.data.detail });
+      } else {
+        setFieldErrors({ quickBorrowerName: 'Failed to add borrower.' });
+      }
+    } finally {
+      setQuickAddSubmitting(false);
+    }
+  };
+
+  const handleSaveInlineEdit = async () => {
+    setEditSubmitting(true);
+    setFieldErrors({});
+    
+    try {
+      const errors: Record<string, string> = {};
+      if (!editName.trim()) errors.editName = "Borrower name is required.";
+      if (!editDivision.trim()) errors.editDivision = "Division is required.";
+      if (!editPhone.trim()) {
+        errors.editPhone = "Phone number is required.";
+      } else if (borrowerId) {
+        const normalizedPhone = editPhone.trim().toLowerCase();
+        const duplicatePhone = borrowers.some(b => b.id !== borrowerId && (b.phone || '').toLowerCase() === normalizedPhone);
+        if (duplicatePhone) {
+          errors.editPhone = "This phone number is already registered by another borrower.";
+        }
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setEditSubmitting(false);
+        return;
+      }
+      
+      if (!borrowerId) return;
+      
+      const payload = {
+        name: editName,
+        division: editDivision,
+        phone: editPhone,
+        email: editEmail || '',
+        is_active: true
+      };
+      
+      await api.patch(`/borrowers/${borrowerId}`, payload);
+      const updatedBorrower = { ...borrowers.find(b => b.id === borrowerId), ...payload, id: borrowerId } as Borrower;
+      
+      setBorrowers(prev => prev.map(b => b.id === borrowerId ? updatedBorrower : b));
+      setEditingBorrowerInline(false);
+    } catch (err: any) {
+      console.error("Failed to edit borrower", err);
+      if (err.response?.data?.detail) {
+        setFieldErrors({ editName: err.response.data.detail });
+      } else {
+        setFieldErrors({ editName: 'Failed to update borrower.' });
+      }
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   const handleApprove = async (id: number) => {
     try {
@@ -112,28 +255,34 @@ export function Loans() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      const recordedByUser = users.find(u => u.id === recordedByUserId);
+      const selectedBorrower = borrowers.find(b => b.id === borrowerId);
       const serializedPurpose = JSON.stringify({
-        borrower_name: borrowerName,
-        borrower_division: borrowerDivision,
-        borrower_phone: borrowerPhone,
-        borrower_email: borrowerEmail || 'N/A',
         loan_date: loanDate,
         return_date: expectedReturnDate,
-        reason: purpose
+        reason: purpose,
+        recorded_by: recordedByUser ? {
+          id: recordedByUser.id,
+          fullname: recordedByUser.fullname,
+          role: recordedByUser.role
+        } : null,
+        borrower_name: selectedBorrower?.name || null,
+        borrower_division: selectedBorrower?.division || null,
+        borrower_phone: selectedBorrower?.phone || null,
+        borrower_email: selectedBorrower?.email || null,
       });
 
       await api.post('/loans', { 
         asset_id: parseInt(selectedAssetId), 
+        user_id: borrowerId,
         purpose: serializedPurpose,
         quantity: quantity
       });
 
       setSuccess(true);
       setStep(1);
-      setBorrowerName('');
-      setBorrowerDivision('');
-      setBorrowerPhone('');
-      setBorrowerEmail('');
+      setBorrowerId(null);
+      setRecordedByUserId(null);
       setSelectedAssetId('');
       setLoanDate(new Date().toISOString().split('T')[0]);
       setExpectedReturnDate('');
@@ -142,7 +291,7 @@ export function Loans() {
       setShowRecordModal(false);
       setFieldErrors({});
       
-      setCurrentPage(1); // Jump back to first page
+      setCurrentPage(1);
       setTimeout(() => setSuccess(false), 5000);
       await fetchData();
     } catch (e) {
@@ -156,16 +305,38 @@ export function Loans() {
 
   // Helper parser for structured purpose data
   const parseLoanPurpose = (loan: any) => {
-    try {
-      if (loan.purpose && loan.purpose.startsWith('{')) {
-        return JSON.parse(loan.purpose);
+    // For new loans, borrower info is stored as JSON in purpose
+    if (loan.purpose && typeof loan.purpose === 'string' && loan.purpose.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(loan.purpose);
+        if (parsed.borrower_name) {
+          return {
+            borrower_name: parsed.borrower_name,
+            borrower_division: parsed.borrower_division || '-',
+            borrower_phone: parsed.borrower_phone || '-',
+            borrower_email: parsed.borrower_email || '-',
+            loan_date: new Date(loan.requested_at).toLocaleDateString(),
+            return_date: loan.returned_at ? new Date(loan.returned_at).toLocaleDateString() : 'N/A',
+            reason: parsed.reason || loan.purpose || 'No purpose stated'
+          };
+        }
+      } catch (e) {
+        // fallback
       }
-    } catch (e) {
-      // fallback
     }
+    
+    // For old loans, borrower info is stored as JSON in purpose (legacy format)
+    if (loan.purpose && typeof loan.purpose === 'string' && loan.purpose.startsWith('{')) {
+      try {
+        return JSON.parse(loan.purpose);
+      } catch (e) {
+        // fallback
+      }
+    }
+    
     return {
       borrower_name: `USR-${loan.user_id}`,
-      borrower_division: 'Cyber Division',
+      borrower_division: 'Unknown',
       borrower_phone: 'N/A',
       borrower_email: 'N/A',
       loan_date: new Date(loan.requested_at).toLocaleDateString(),
@@ -186,7 +357,7 @@ export function Loans() {
         return loans.filter(l => l.status === 'ACTIVE');
       case "overdue":
         return loans.filter(l => l.status === 'OVERDUE');
-      case "history":
+      case "borrower":
         return loans.filter(l => ['RETURNED', 'REJECTED'].includes(l.status));
       default:
         return [];
@@ -195,9 +366,8 @@ export function Loans() {
 
   const baseAdminLoans = getTabLoans();
 
-  // Compute statuses based on tab, and divisions from ALL loans
   let statuses: string[] = [];
-  if (adminTab === 'history') statuses = ['Returned', 'Rejected'];
+  if (adminTab === 'borrower') statuses = ['Returned', 'Rejected'];
   else if (adminTab === 'active') statuses = ['Active'];
   else if (adminTab === 'overdue') statuses = ['Overdue'];
   
@@ -261,11 +431,19 @@ export function Loans() {
           </div>
           {isAdmin && (
             <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => {
-                  setStep(1);
-                  setShowRecordModal(true);
-                }}
+                <button
+                  onClick={() => {
+                    setStep(1);
+                    setBorrowerId(null);
+                    setRecordedByUserId(null);
+                    setSelectedAssetId('');
+                    setLoanDate(new Date().toISOString().split('T')[0]);
+                    setExpectedReturnDate('');
+                    setPurpose('');
+                    setQuantity(1);
+                    setFieldErrors({});
+                    setShowRecordModal(true);
+                  }}
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white border border-[#DC2626] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
               >
                 <Plus size={13} /> Record Loan
@@ -281,7 +459,7 @@ export function Loans() {
                 { id: "active", label: "Active Loans", count: loans.filter(l => l.status === "ACTIVE").length },
                 { id: "approval", label: "Approval Board", count: pendingApprovals.length },
                 { id: "overdue", label: "Overdue", count: loans.filter(l => l.status === "OVERDUE").length },
-                { id: "history", label: "History", count: loans.filter(l => ["RETURNED", "REJECTED"].includes(l.status)).length },
+                { id: "borrower", label: "Loan History", count: loans.filter(l => ['RETURNED', 'REJECTED'].includes(l.status)).length },
               ].map((tab) => {
                 const isActive = adminTab === tab.id;
                 return (
@@ -303,9 +481,17 @@ export function Loans() {
                     <span>{tab.label}</span>
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
                       tab.count > 0
-                        ? "bg-[#DC2626] text-white shadow-sm"
-                        : isActive 
-                          ? "bg-[#DC2626] text-white" 
+                        ? tab.id === "active"
+                          ? "bg-blue-100 text-blue-700"
+                          : tab.id === "approval"
+                          ? "bg-amber-100 text-amber-700"
+                          : tab.id === "overdue"
+                          ? "bg-red-100 text-red-700"
+                          : tab.id === "borrower"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-[#E4E4E7] text-[#52525B]"
+                        : tab.id === "overdue"
+                          ? "bg-emerald-100 text-emerald-700"
                           : "bg-[#E4E4E7] text-[#52525B]"
                     }`}>
                       {tab.count}
@@ -411,7 +597,7 @@ export function Loans() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] group-focus-within:text-[#DC2626] transition-colors" size={14} />
                         <input
                           type="text"
-                          placeholder="Filter in records..."
+                          placeholder=""
                           value={searchQuery}
                           onChange={(e) => {
                             setSearchQuery(e.target.value);
@@ -463,7 +649,7 @@ export function Loans() {
                         <thead>
                           <tr className="bg-[#F4F4F5] border-y border-[#E4E4E7]">
                             {["Loan ID", "Asset Name", "Qty", "Borrower", "Division", "Loan Period", "Status", "Actions"].map((h) => (
-                              <th key={h} className={`sticky top-0 bg-[#F4F4F5] z-10 text-left px-5 py-4 text-[14px] font-semibold whitespace-nowrap ${h === 'Actions' ? 'text-[#18181B]' : 'text-[#DC2626]'}`}>{h}</th>
+                              <th key={h} className={`sticky top-0 bg-[#F4F4F5] z-10 text-left px-5 py-4 text-[14px] font-semibold whitespace-nowrap ${h === 'Actions' ? 'text-[#18181B]' : 'text-[#475569]'}`}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -644,59 +830,255 @@ export function Loans() {
                 {/* Step 1: Borrower Info */}
                 {step === 1 && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Name</label>
-                        <input 
-                          type="text" 
-                          value={borrowerName}
-                          onChange={(e) => {
-                            setBorrowerName(e.target.value);
-                            if (fieldErrors.borrowerName) setFieldErrors(prev => ({ ...prev, borrowerName: '' }));
-                          }}
-                          className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
-                        />
-                        {fieldErrors.borrowerName && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerName}</span>}
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Phone Number</label>
-                        <input 
-                          type="text" 
-                          value={borrowerPhone}
-                          onChange={(e) => {
-                            setBorrowerPhone(e.target.value);
-                            if (fieldErrors.borrowerPhone) setFieldErrors(prev => ({ ...prev, borrowerPhone: '' }));
-                          }}
-                          className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
-                        />
-                        {fieldErrors.borrowerPhone && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerPhone}</span>}
-                      </div>
-                    </div>
                     <div>
-                      <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Division</label>
-                      <input 
-                        type="text" 
-                        value={borrowerDivision}
-                        onChange={(e) => {
-                          setBorrowerDivision(e.target.value);
-                          if (fieldErrors.borrowerDivision) setFieldErrors(prev => ({ ...prev, borrowerDivision: '' }));
+                      <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Select Borrower</label>
+                      <SearchableSelect
+                        value={borrowerId ? String(borrowerId) : ''}
+                        onChange={(val) => {
+                          const id = Number(val);
+                          setBorrowerId(id || null);
+                          if (fieldErrors.borrowerId) setFieldErrors(prev => ({ ...prev, borrowerId: '' }));
                         }}
-                        className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerDivision ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
+                        placeholder="Choose borrower..."
+                        searchPlaceholder="Search borrower by name or division..."
+                        options={borrowers.map(b => ({
+                          value: String(b.id),
+                          label: b.name,
+                          badgeText: b.division || '-',
+                          badgeColor: 'text-[#52525B]'
+                        }))}
                       />
-                      {fieldErrors.borrowerDivision && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerDivision}</span>}
+                      {fieldErrors.borrowerId && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerId}</span>}
                     </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddBorrower(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E4E4E7] hover:border-[#DC2626] hover:text-[#DC2626] text-[#52525B] text-[10px] font-mono font-bold rounded-lg transition-all cursor-pointer"
+                    >
+                      <Plus size={11} /> Quick Add New Borrower
+                    </button>
+
+                    {showQuickAddBorrower && (
+                      <div className="p-4 bg-white border border-[#E4E4E7] rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="text-[10px] font-mono text-[#71717A] uppercase tracking-wider font-bold">Add New Borrower</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Full Name *</label>
+                            <input
+                              type="text"
+                              value={quickBorrowerName}
+                              onChange={(e) => {
+                                setQuickBorrowerName(e.target.value);
+                                if (fieldErrors.quickBorrowerName) setFieldErrors(prev => ({ ...prev, quickBorrowerName: '' }));
+                              }}
+                              className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.quickBorrowerName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                              placeholder="e.g. John Doe"
+                            />
+                            {fieldErrors.quickBorrowerName && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.quickBorrowerName}</span>}
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Division *</label>
+                            <input
+                              type="text"
+                              value={quickBorrowerDivision}
+                              onChange={(e) => {
+                                setQuickBorrowerDivision(e.target.value);
+                                if (fieldErrors.quickBorrowerDivision) setFieldErrors(prev => ({ ...prev, quickBorrowerDivision: '' }));
+                              }}
+                              className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.quickBorrowerDivision ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                              placeholder="e.g. Incident Response"
+                            />
+                            {fieldErrors.quickBorrowerDivision && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.quickBorrowerDivision}</span>}
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Phone Number *</label>
+                            <input
+                              type="text"
+                              value={quickBorrowerPhone}
+                              onChange={(e) => {
+                                setQuickBorrowerPhone(e.target.value);
+                                if (fieldErrors.quickBorrowerPhone) setFieldErrors(prev => ({ ...prev, quickBorrowerPhone: '' }));
+                              }}
+                              className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.quickBorrowerPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                              placeholder="+62 811-xxx-xxxx"
+                            />
+                            {fieldErrors.quickBorrowerPhone && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.quickBorrowerPhone}</span>}
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-mono text-[#71717A] flex items-center justify-between mb-1 tracking-wider">
+                              <span>Email</span>
+                              <span className="text-[9px] text-[#A1A1AA] tracking-normal normal-case italic">Optional</span>
+                            </label>
+                            <input
+                              type="email"
+                              value={quickBorrowerEmail}
+                              onChange={(e) => setQuickBorrowerEmail(e.target.value)}
+                              className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                              placeholder="email@example.com"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowQuickAddBorrower(false)}
+                            className="px-4 py-2 bg-[#6B7280] hover:bg-[#4B5563] text-white text-[10px] font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleQuickAddBorrower}
+                            disabled={quickAddSubmitting}
+                            className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                          >
+                            {quickAddSubmitting ? 'Saving...' : 'Add & Select'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {borrowerId && (() => {
+                      const selectedBorrower = borrowers.find(b => b.id === borrowerId);
+                      if (!selectedBorrower) return null;
+                      
+                      if (editingBorrowerInline) {
+                        return (
+                          <div className="p-4 bg-white border border-[#DC2626] rounded-lg space-y-3 animate-in fade-in duration-200">
+                            <div className="text-[10px] font-mono text-[#DC2626] uppercase tracking-wider font-bold">Edit Borrower</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Full Name *</label>
+                                <input
+                                  type="text"
+                                  value={editName}
+                                  onChange={(e) => {
+                                    setEditName(e.target.value);
+                                    if (fieldErrors.editName) setFieldErrors(prev => ({ ...prev, editName: '' }));
+                                  }}
+                                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.editName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                                />
+                                {fieldErrors.editName && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.editName}</span>}
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Division *</label>
+                                <input
+                                  type="text"
+                                  value={editDivision}
+                                  onChange={(e) => {
+                                    setEditDivision(e.target.value);
+                                    if (fieldErrors.editDivision) setFieldErrors(prev => ({ ...prev, editDivision: '' }));
+                                  }}
+                                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.editDivision ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                                />
+                                {fieldErrors.editDivision && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.editDivision}</span>}
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Phone Number *</label>
+                                <input
+                                  type="text"
+                                  value={editPhone}
+                                  onChange={(e) => {
+                                    setEditPhone(e.target.value);
+                                    if (fieldErrors.editPhone) setFieldErrors(prev => ({ ...prev, editPhone: '' }));
+                                  }}
+                                  className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.editPhone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
+                                />
+                                {fieldErrors.editPhone && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.editPhone}</span>}
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-mono text-[#71717A] flex items-center justify-between mb-1 tracking-wider">
+                                  <span>Email</span>
+                                  <span className="text-[9px] text-[#A1A1AA] tracking-normal normal-case italic">Optional</span>
+                                </label>
+                                <input
+                                  type="email"
+                                  value={editEmail}
+                                  onChange={(e) => setEditEmail(e.target.value)}
+                                  className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingBorrowerInline(false)}
+                                className="px-4 py-2 bg-[#6B7280] hover:bg-[#4B5563] text-white text-[10px] font-mono font-bold rounded-lg transition-colors shadow-sm cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSaveInlineEdit}
+                                disabled={editSubmitting}
+                                className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                              >
+                                {editSubmitting ? 'Saving...' : 'Save Changes'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="p-4 bg-white border border-[#E4E4E7] rounded-lg">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="text-[10px] font-mono text-[#71717A] uppercase tracking-wider font-bold">Selected Borrower</div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBorrowerInline(true);
+                                setEditName(selectedBorrower.name);
+                                setEditDivision(selectedBorrower.division || '');
+                                setEditPhone(selectedBorrower.phone || '');
+                                setEditEmail(selectedBorrower.email || '');
+                                setFieldErrors({});
+                              }}
+                              className="flex items-center gap-1 px-2 py-1 bg-[#3B82F6] text-white hover:bg-[#2563EB] text-[10px] font-mono font-bold rounded transition-colors cursor-pointer shadow-sm"
+                            >
+                              <Edit2 size={10} /> Edit
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Full Name</label>
+                              <div className="text-xs font-mono font-bold text-[#18181B]">{selectedBorrower.name}</div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Division</label>
+                              <div className="text-xs font-mono font-bold text-[#52525B]">{selectedBorrower.division || '-'}</div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Phone Number</label>
+                              <div className="text-xs font-mono font-bold text-[#52525B]">{selectedBorrower.phone || '-'}</div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Email</label>
+                              <div className="text-xs font-mono font-bold text-[#52525B] truncate">{selectedBorrower.email || '-'}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div>
-                      <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Borrower Email (Optional)</label>
-                      <input 
-                        type="email" 
-                        value={borrowerEmail}
-                        onChange={(e) => {
-                          setBorrowerEmail(e.target.value);
-                          if (fieldErrors.borrowerEmail) setFieldErrors(prev => ({ ...prev, borrowerEmail: '' }));
+                      <label className="text-[10px] font-mono text-[#71717A] block mb-1.5 tracking-wider">Recorded By (Issued By)</label>
+                      <SearchableSelect
+                        value={recordedByUserId ? String(recordedByUserId) : ''}
+                        onChange={(val) => {
+                          const userId = Number(val);
+                          setRecordedByUserId(userId || null);
+                          if (fieldErrors.recordedByUserId) setFieldErrors(prev => ({ ...prev, recordedByUserId: '' }));
                         }}
-                        className={`w-full bg-white border rounded-lg px-3 py-2.5 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 placeholder-[#A1A1AA] transition-all ${fieldErrors.borrowerEmail ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`} 
+                        placeholder="Select issuing user..."
+                        searchPlaceholder="Search user by name or role..."
+                        options={users.map(u => ({
+                          value: String(u.id),
+                          label: `${u.fullname} (${u.role.charAt(0) + u.role.slice(1).toLowerCase()}) - ${u.division || '-'}`,
+                        }))}
                       />
-                      {fieldErrors.borrowerEmail && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.borrowerEmail}</span>}
+                      {fieldErrors.recordedByUserId && <span className="text-red-500 text-[10px] font-mono mt-1 block">{fieldErrors.recordedByUserId}</span>}
                     </div>
                   </div>
                 )}
@@ -791,22 +1173,26 @@ export function Loans() {
                 {step === 3 && (
                   <div className="space-y-3">
                     <div className="text-[10px] font-mono text-[#71717A] tracking-wider mb-2 uppercase border-b border-[#E4E4E7] pb-1.5">Review Loan Details</div>
-                    {[
-                      ["Borrower Name", borrowerName],
-                      ["Borrower Division", borrowerDivision],
-                      ["Borrower Phone", borrowerPhone],
-                      ["Borrower Email", borrowerEmail || "N/A"],
-                      ["Selected Asset", getAssetName(parseInt(selectedAssetId))],
-                      ["Quantity", quantity],
-                      ["Loan Date", loanDate],
-                      ["Return Date", expectedReturnDate],
-                      ["Reason / Description", purpose],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between py-1.5 border-b border-[#E4E4E7]/40 last:border-0 text-xs">
-                        <span className="text-[10px] text-[#71717A] font-mono shrink-0">{k}</span>
-                        <span className="text-[10px] text-[#18181B] font-mono font-bold text-right max-w-[280px] leading-tight truncate" title={v}>{v}</span>
-                      </div>
-                    ))}
+                    {(() => {
+                      const selectedBorrower = borrowers.find(b => b.id === borrowerId);
+                      const reviewItems = [
+                        ["Borrower Name", selectedBorrower?.name || '-'],
+                        ["Borrower Division", selectedBorrower?.division || '-'],
+                        ["Borrower Phone", selectedBorrower?.phone || '-'],
+                        ["Borrower Email", selectedBorrower?.email || '-'],
+                        ["Selected Asset", getAssetName(parseInt(selectedAssetId))],
+                        ["Quantity", quantity],
+                        ["Loan Date", loanDate],
+                        ["Return Date", expectedReturnDate],
+                        ["Reason / Description", purpose],
+                      ];
+                      return reviewItems.map(([k, v]) => (
+                        <div key={k} className="flex justify-between py-1.5 border-b border-[#E4E4E7]/40 last:border-0 text-xs">
+                          <span className="text-[10px] text-[#71717A] font-mono shrink-0">{k}</span>
+                          <span className="text-[10px] text-[#18181B] font-mono font-bold text-right max-w-[280px] leading-tight truncate" title={v}>{v}</span>
+                        </div>
+                      ));
+                    })()}
                     <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-lg mt-4">
                       <CheckCircle size={13} className="text-blue-600 mt-0.5 shrink-0" />
                       <p className="text-[10px] font-mono text-blue-700 leading-relaxed">
@@ -832,15 +1218,8 @@ export function Loans() {
                     onClick={() => {
                       if (step === 1) {
                         const errors: Record<string, string> = {};
-                        if (!borrowerName.trim()) errors.borrowerName = "Borrower Name is required.";
-                        if (!borrowerPhone.trim()) errors.borrowerPhone = "Borrower Phone is required.";
-                        if (!borrowerDivision.trim()) errors.borrowerDivision = "Borrower Division is required.";
-                        if (borrowerEmail) {
-                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                          if (!emailRegex.test(borrowerEmail)) {
-                            errors.borrowerEmail = "Please enter a valid email address.";
-                          }
-                        }
+                        if (!borrowerId) errors.borrowerId = "Borrower is required.";
+                        if (!recordedByUserId) errors.recordedByUserId = "Recorded By is required.";
                         if (Object.keys(errors).length > 0) {
                           setFieldErrors(errors);
                           return;
@@ -1020,11 +1399,10 @@ export function Loans() {
                   setShowCancelConfirmModal(false);
                   setShowRecordModal(false);
                   setStep(1);
-                  setBorrowerName('');
-                  setBorrowerDivision('');
-                  setBorrowerPhone('');
-                  setBorrowerEmail('');
+                  setBorrowerId(null);
+                  setRecordedByUserId(null);
                   setSelectedAssetId('');
+                  setLoanDate(new Date().toISOString().split('T')[0]);
                   setExpectedReturnDate('');
                   setPurpose('');
                   setQuantity(1);

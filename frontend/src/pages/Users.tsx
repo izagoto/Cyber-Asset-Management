@@ -45,7 +45,7 @@ export function Users() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [role, setRole] = useState('Admin');
+  const [role, setRole] = useState('ADMIN');
   const [division, setDivision] = useState('');
   const [phone, setPhone] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -62,7 +62,7 @@ export function Users() {
     try {
       const res = await api.get('/users');
       const data = res.data.data ?? [];
-      data.sort((a: User, b: User) => b.id - a.id);
+      data.sort((a: User, b: User) => a.id - b.id);
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -87,7 +87,7 @@ export function Users() {
     setConfirmPassword('');
     setShowPassword(false);
     setShowConfirmPassword(false);
-    setRole('Admin');
+    setRole('ADMIN');
     setDivision('');
     setPhone('');
     setIsActive(true);
@@ -231,7 +231,7 @@ export function Users() {
             <button
               onClick={() => {
                 setEditingUser(null);
-                setFullname(''); setEmail(''); setPassword(''); setRole('Admin'); setDivision(''); setPhone('');
+                setFullname(''); setEmail(''); setPassword(''); setRole('ADMIN'); setDivision(''); setPhone('');
                 setErrorMessage('');
                 setShowModal(true);
               }}
@@ -269,7 +269,7 @@ export function Users() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A1A1AA] group-focus-within:text-[#DC2626] transition-colors" size={14} />
               <input
                 type="text"
-                placeholder="Filter in records..."
+                placeholder=""
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -319,11 +319,11 @@ export function Users() {
             <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="bg-[#F4F4F5] border-y border-[#E4E4E7]">
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">User</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">Department / Division</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap">Contact</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap w-24">Status</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#DC2626] whitespace-nowrap w-32">Role</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">User</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">Department / Division</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">Contact</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-24">Status</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-32">Role</th>
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#18181B] whitespace-nowrap w-28">Action</th>
                 </tr>
               </thead>
@@ -340,7 +340,7 @@ export function Users() {
                           <div className={[
                             "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 shadow-xs",
                             "w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0",
-                            user.role === "Admin"
+                            user.role === "ADMIN"
                               ? "bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626]"
                               : "bg-[#F4F4F5] border border-[#E4E4E7] text-[#71717A]",
                           ].join(" ")}>
@@ -368,11 +368,11 @@ export function Users() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {user.role === "Admin" ? (
+                        {user.role === "ADMIN" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-[#DC2626]/30 text-[#DC2626] bg-[#DC2626]/5">
                             Admin
                           </span>
-                        ) : user.role === "Supervisor" ? (
+                        ) : user.role === "SUPERVISOR" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold rounded border border-purple-500/30 text-purple-600 bg-purple-500/5">
                             Supervisor
                           </span>
@@ -634,8 +634,8 @@ export function Users() {
                   value={role}
                   onChange={(val) => setRole(val as string)}
                   options={[
-                    { value: 'Admin', label: 'Admin' },
-                    { value: 'Supervisor', label: 'Supervisor' }
+                    { value: 'ADMIN', label: 'Admin' },
+                    { value: 'SUPERVISOR', label: 'Supervisor' }
                   ]}
                   className="w-full h-[38px] [&>button]:h-full"
                 />
@@ -878,6 +878,7 @@ export function Users() {
                 Cancel
               </button>
               <button 
+                type="button"
                 onClick={executeDeleteUser}
                 disabled={submitting}
                 className="px-5 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"

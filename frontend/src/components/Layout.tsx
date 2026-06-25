@@ -3,46 +3,55 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import {
-  LayoutDashboard, Package, ArrowLeftRight, LogOut, ChevronRight, Settings, Clock, Calendar, ChevronLeft
+  LayoutDashboard, Package, ArrowLeftRight, LogOut, ChevronRight, Clock, Calendar, ChevronLeft, Tag, Users
 } from 'lucide-react';
 
 const navGroups = [
   {
-    title: "Main Menu",
+    title: "MAIN MENU",
     items: [
       { id: "dashboard", path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     ]
   },
   {
-    title: "Asset Operations",
+    title: "ASSET MANAGEMENT",
     items: [
-      { id: "assets", path: "/assets", label: "Asset Inventory", icon: Package, adminOnly: true },
-      { id: "loans", path: "/loans", label: "Loan Tracking", icon: ArrowLeftRight, adminOnly: false },
+      { id: "assets", path: "/assets", label: "Assets", icon: Package, adminOnly: true },
+      { id: "categories", path: "/categories", label: "Categories", icon: Tag, adminOnly: true },
     ]
   },
   {
-    title: "Administration",
+    title: "LOAN MANAGEMENT",
     items: [
-      { id: "users", path: "/users", label: "User Management", icon: Settings, adminOnly: true },
+      { id: "loans", path: "/loans", label: "Asset Loans", icon: ArrowLeftRight, adminOnly: false },
+      { id: "borrowers", path: "/borrowers", label: "Borrowers", icon: Users, adminOnly: true },
+    ]
+  },
+  {
+    title: "ADMINISTRATION",
+    items: [
+      { id: "users", path: "/users", label: "Users", icon: Users, adminOnly: true },
     ]
   }
 ];
 
 const pageLabels: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/assets": "Asset Inventory",
-  "/loans": "Loan Tracking",
-  "/users": "User Management",
+  "/assets": "Assets",
+  "/loans": "Asset Loans",
+  "/categories": "Categories",
+  "/borrowers": "Borrowers",
+  "/users": "Users",
 };
 
 function Sidebar({ isAdmin, pendingCount, isOpen, onToggle }: { isAdmin: boolean; pendingCount: number; isOpen: boolean; onToggle: () => void }) {
   const location = useLocation();
 
   return (
-    <aside className={`${isOpen ? 'w-[240px]' : 'w-[80px]'} min-h-screen bg-[#18181B] flex flex-col shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.1)] transition-all duration-300 relative border-r-8 border-[#B91C1C]`}>
+    <aside className={`${isOpen ? 'w-[240px]' : 'w-[80px]'} min-h-screen bg-[#18181B] flex flex-col shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.1)] transition-all duration-300 relative border-r-12 border-white`}>
       <button
         onClick={onToggle}
-        className="absolute -right-5 top-8 w-5 h-12 bg-[#B91C1C] rounded-r-md flex items-center justify-center text-white hover:bg-[#DC2626] transition-colors z-50 cursor-pointer border-y border-r border-[#B91C1C]/50 shadow-[4px_0_10px_rgba(0,0,0,0.1)]"
+        className="absolute -right-5 top-8 w-5 h-12 bg-white rounded-r-md flex items-center justify-center text-[#18181B] hover:bg-[#F4F4F5] transition-colors z-50 cursor-pointer border-y border-r border-[#E4E4E7] shadow-[4px_0_10px_rgba(0,0,0,0.1)]"
       >
         {isOpen ? <ChevronLeft size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
       </button>
@@ -78,20 +87,20 @@ function Sidebar({ isAdmin, pendingCount, isOpen, onToggle }: { isAdmin: boolean
                   title={!isOpen ? item.label : undefined}
                   className={[
                     `flex items-center ${isOpen ? 'gap-3.5 pl-3' : 'justify-center pl-0'} py-3 text-[15px] font-medium relative group focus:outline-none`,
-                    isActive
-                      ? "sidebar-item-active z-10 bg-linear-to-r from-[#DC2626] to-[#B91C1C] text-white"
-                      : "text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#27272A] rounded-xl mr-3 transition-colors duration-200",
+                     isActive
+                       ? "sidebar-item-active z-10 bg-white text-[#18181B] rounded-l-xl mr-0 border-l-4 border-l-white"
+                       : "text-[#A1A1AA] hover:text-[#FAFAFA] hover:bg-[#27272A] rounded-xl mr-3 transition-none",
                     isLocked ? "opacity-35 cursor-not-allowed" : "cursor-pointer",
                   ].join(" ")}
                 >
                   <item.icon
                     size={22}
-                    className={isActive ? "text-white" : "text-[#71717A] group-hover:text-[#A1A1AA]"}
+                    className={isActive ? "text-[#DC2626]" : "text-[#71717A] group-hover:text-[#A1A1AA]"}
                   />
-                  {isOpen && <span className={`flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? 'text-white' : ''}`}>{item.label}</span>}
+                  {isOpen && <span className={`flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis ${isActive ? 'text-[#18181B]' : ''}`}>{item.label}</span>}
                   
                   {showBadge && (
-                    <span className={`flex items-center justify-center rounded-full text-[10px] font-bold shadow-sm transition-all animate-pulse ${isOpen ? 'h-5 w-5 mr-3' : 'absolute top-1 right-1.5 h-3.5 w-3.5 text-[8px]'} ${isActive ? 'bg-white text-[#DC2626]' : 'bg-[#DC2626] text-white'}`}>
+                    <span className={`flex items-center justify-center rounded-full text-[10px] font-bold shadow-sm transition-all animate-pulse ${isOpen ? 'h-5 w-5 mr-3' : 'absolute top-1 right-1.5 h-3.5 w-3.5 text-[8px]'} ${isActive ? 'bg-[#DC2626] text-white' : 'bg-[#DC2626] text-white'}`}>
                       {isOpen ? pendingCount : pendingCount > 9 ? '9+' : pendingCount}
                     </span>
                   )}
@@ -180,9 +189,7 @@ export function Layout() {
         >
           {/* Breadcrumb */}
           <div className="flex items-center gap-3">
-            <span className="text-lg font-medium hidden sm:inline"><span className="text-[#DC2626]">Inventaris</span> <span className="text-[#71717A]">Siber</span></span>
-            <span className="text-base text-[#A1A1AA] hidden sm:inline">© 2026</span>
-            <ChevronRight size={18} className="text-[#DC2626] hidden sm:inline" />
+            <LayoutDashboard size={22} className="text-[#DC2626]" />
             <div className="text-lg font-bold text-[#18181B]">{pageTitle}</div>
           </div>
 

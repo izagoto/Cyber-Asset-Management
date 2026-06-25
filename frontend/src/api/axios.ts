@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // baseURL dihapus agar otomatis mengikuti domain/IP server (berguna untuk Nginx Reverse Proxy)
+  baseURL: '/api/v1/',
   headers: {
     'Content-Type': 'application/json',
   },

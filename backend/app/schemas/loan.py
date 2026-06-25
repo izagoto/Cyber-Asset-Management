@@ -2,6 +2,7 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
 from app.models.loan import LoanStatus
+from app.schemas.user import UserResponse
 
 class LoanBase(BaseModel):
     asset_id: int
@@ -10,11 +11,12 @@ class LoanBase(BaseModel):
     quantity: int = 1
 
 class LoanCreate(LoanBase):
-    pass
+    user_id: Optional[int] = None
 
 class LoanResponse(LoanBase):
     id: int
     user_id: int
+    user: Optional[UserResponse] = None
     status: LoanStatus
     requested_at: datetime
     approved_at: Optional[datetime] = None

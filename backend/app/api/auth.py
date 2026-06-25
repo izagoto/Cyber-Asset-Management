@@ -1,5 +1,5 @@
 import typing
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, HTTPException, status
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -11,7 +11,7 @@ from app.schemas.response import StandardResponse
 from app.models.blacklisted_token import BlacklistedToken
 
 router = APIRouter(
-    prefix="/auth",
+    prefix="/api/v1/auth",
     tags=["Authentication"]
 )
 
@@ -29,15 +29,14 @@ def login(
     )
 
     if not user:
-        return StandardResponse(
-            status="error",
-            message="Invalid credentials",
-            data=None
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
         )
 
     token = create_access_token(
-        typing.cast(int, user.id), 
-        typing.cast(str, user.role)
+        user.id, 
+        user.role
     )
 
     return StandardResponse(

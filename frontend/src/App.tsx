@@ -6,6 +6,8 @@ import { Dashboard } from './pages/Dashboard';
 import { Assets } from './pages/Assets';
 import { Loans } from './pages/Loans';
 import { Users } from './pages/Users';
+import { Categories } from './pages/Categories';
+import { Borrowers } from './pages/Borrowers';
 import { Loader, Text } from '@mantine/core';
 import './index.css';
 
@@ -86,7 +88,7 @@ function AppRouter() {
           <Route 
             path="assets" 
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute allowedRoles={['ADMIN']}>
                 <Assets />
               </ProtectedRoute>
             } 
@@ -94,8 +96,24 @@ function AppRouter() {
           <Route 
             path="users" 
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute allowedRoles={['ADMIN']}>
                 <Users />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="categories" 
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <Categories />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="borrowers" 
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <Borrowers />
               </ProtectedRoute>
             } 
           />

@@ -2,7 +2,7 @@ export interface User {
   id: number;
   email: string;
   fullname: string;
-  role: 'Admin' | 'Supervisor';
+  role: 'ADMIN' | 'SUPERVISOR';
   division?: string;
   phone?: string;
   is_active: boolean;
@@ -15,7 +15,7 @@ export interface Asset {
   category?: string;
   serial_number?: string;
   description?: string;
-  status: 'AVAILABLE' | 'BORROWED' | 'MAINTENANCE' | 'LOST';
+  status: 'AVAILABLE' | 'BORROWED' | 'MAINTENANCE' | 'LOST' | 'MISSING';
   quantity: number;
   available_quantity?: number;
   created_at: string;
@@ -49,4 +49,24 @@ export interface DashboardStats {
   overdue_loans: number;
   returned_loans: number;
   maintenance_assets: number;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Borrower {
+  id: number;
+  name: string;
+  division?: string;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
 }

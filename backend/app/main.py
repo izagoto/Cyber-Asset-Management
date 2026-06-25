@@ -10,6 +10,8 @@ from app.api.users import router as user_router
 from app.api.assets import router as asset_router
 from app.api.loans import router as loan_router
 from app.api.stats import router as stats_router
+from app.api.categories import router as category_router
+from app.api.borrowers import router as borrower_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -63,6 +65,8 @@ app.include_router(user_router)
 app.include_router(asset_router)
 app.include_router(loan_router)
 app.include_router(stats_router)
+app.include_router(category_router)
+app.include_router(borrower_router)
 
 
 

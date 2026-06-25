@@ -10,7 +10,7 @@ from app.models.loan import Loan, LoanStatus
 from app.models.user import User
 from app.schemas.response import StandardResponse
 
-router = APIRouter(prefix="/stats", tags=["Stats"])
+router = APIRouter(prefix="/api/v1/stats", tags=["Stats"])
 
 @router.get("", response_model=StandardResponse[dict])
 def get_dashboard_stats(

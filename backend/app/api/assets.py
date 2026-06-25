@@ -6,11 +6,19 @@ from app.core.database import get_db
 from app.core.rbac import require_role
 from app.middleware.auth import get_current_user
 from app.models.user import User
+from app.models.asset import Asset
 from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse
 from app.services.asset_service import AssetService
 from app.schemas.response import StandardResponse
 
-router = APIRouter(prefix="/assets", tags=["Assets"])
+router = APIRouter(prefix="/api/v1/assets", tags=["Assets"])
+
+@router.get("/categories", response_model=StandardResponse[List[str]])
+def get_categories(db: Session = Depends(get_db)):
+    """Get unique categories list (Admin only)"""
+    from sqlalchemy import distinct
+    categories = [c[0] for c in db.query(distinct(Asset.category)).filter(Asset.category != None).all()]
+    return StandardResponse(status="success", message="Categories retrieved", data=categories)
 
 @router.get("", response_model=StandardResponse[List[AssetResponse]])
 def get_assets(

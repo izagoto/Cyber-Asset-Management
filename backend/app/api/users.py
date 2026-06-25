@@ -15,7 +15,7 @@ from app.core.rbac import require_role
 from app.schemas.response import StandardResponse
 
 router = APIRouter(
-    prefix="/users",
+    prefix="/api/v1/users",
     tags=["Users"]
 )
 

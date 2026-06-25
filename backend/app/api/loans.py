@@ -11,7 +11,7 @@ from app.schemas.loan import LoanCreate, LoanResponse
 from app.services.loan_service import LoanService
 from app.schemas.response import StandardResponse
 
-router = APIRouter(prefix="/loans", tags=["Loans"])
+router = APIRouter(prefix="/api/v1/loans", tags=["Loans"])
 
 @router.post("", response_model=StandardResponse[LoanResponse], status_code=status.HTTP_201_CREATED)
 def request_loan(

@@ -10,14 +10,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '^/(auth|users|assets|loans|stats)': {
-        target: 'http://127.0.0.1:8000',
+      '^/api/v1/(auth|users|assets|loans|stats|categories|borrowers)': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        bypass: (req) => {
-          if (req.headers.accept?.includes('text/html')) {
-            return req.url;
-          }
-        }
       }
     }
   }
