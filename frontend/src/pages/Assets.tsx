@@ -181,7 +181,8 @@ export function Assets() {
 
     try {
       const errors: Record<string, string> = {};
-      if (!quickCategoryName.trim()) errors.quickCategoryName = "Category name is required.";
+      if (!quickCategoryName.trim())
+        errors.quickCategoryName = "Category name is required.";
 
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
@@ -412,7 +413,7 @@ export function Assets() {
             >
               <Download size={13} className="text-white" /> Export CSV
             </button>
-{isAdmin && (
+            {isAdmin && (
               <button
                 onClick={() => setShowModal(true)}
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#DC2626] hover:bg-[#B91C1C] text-white border border-[#DC2626] text-xs font-mono font-bold rounded-lg transition-all cursor-pointer shadow-sm"
@@ -444,7 +445,9 @@ export function Assets() {
             {
               id: "lost",
               label: "Lost Missing",
-              count: assets.filter((a) => a.status === "LOST" || a.status === "MISSING").length,
+              count: assets.filter(
+                (a) => a.status === "LOST" || a.status === "MISSING",
+              ).length,
             },
           ].map((tab) => {
             const isActive = statusFilter === tab.id;
@@ -468,12 +471,12 @@ export function Assets() {
                       ? tab.id === "available"
                         ? "bg-emerald-100 text-emerald-700"
                         : tab.id === "borrowed"
-                        ? "bg-blue-100 text-blue-700"
-                        : tab.id === "maintenance"
-                        ? "bg-amber-100 text-amber-700"
-                        : tab.id === "lost"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-[#E4E4E7] text-[#52525B]"
+                          ? "bg-blue-100 text-blue-700"
+                          : tab.id === "maintenance"
+                            ? "bg-amber-100 text-amber-700"
+                            : tab.id === "lost"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-[#E4E4E7] text-[#52525B]"
                       : tab.id === "lost"
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-[#E4E4E7] text-[#52525B]"
@@ -560,19 +563,35 @@ export function Assets() {
             <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="bg-[#F4F4F5] border-y border-[#E4E4E7]">
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-24">Asset ID</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-24">
+                    Asset ID
+                  </th>
                   <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span className="text-[#475569]">Asset Name</span>
                     </div>
                   </th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">Category</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">Serial Number</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-16">Total Qty</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-16">Available</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">Description</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-24">Status</th>
-                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#18181B] whitespace-nowrap w-24">Action</th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">
+                    Category
+                  </th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">
+                    Serial Number
+                  </th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-16">
+                    Total Qty
+                  </th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-16">
+                    Available
+                  </th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap">
+                    Description
+                  </th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#475569] whitespace-nowrap w-24">
+                    Status
+                  </th>
+                  <th className="text-left px-6 py-4 text-[14px] font-semibold text-[#18181B] whitespace-nowrap w-24">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E4E4E7]/60">
@@ -809,33 +828,47 @@ export function Assets() {
 
                     {showQuickAddCategory && (
                       <div className="p-4 bg-white border border-[#E4E4E7] rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <div className="text-[10px] font-mono text-[#71717A] uppercase tracking-wider font-bold">Add New Category</div>
+                        <div className="text-[10px] font-mono text-[#71717A] uppercase tracking-wider font-bold">
+                          Add New Category
+                        </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">Category Name *</label>
+                            <label className="text-[10px] font-mono text-[#71717A] block mb-1 tracking-wider">
+                              Category Name *
+                            </label>
                             <input
                               type="text"
                               value={quickCategoryName}
                               onChange={(e) => {
                                 setQuickCategoryName(e.target.value);
-                                if (fieldErrors.quickCategoryName) setFieldErrors(prev => ({ ...prev, quickCategoryName: '' }));
+                                if (fieldErrors.quickCategoryName)
+                                  setFieldErrors((prev) => ({
+                                    ...prev,
+                                    quickCategoryName: "",
+                                  }));
                               }}
-                              className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.quickCategoryName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20'}`}
-                              placeholder="e.g. Laptop, Monitor, etc."
+                              className={`w-full bg-[#FFFFFF] border rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:ring-2 transition-all ${fieldErrors.quickCategoryName ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : "border-[#E4E4E7] focus:border-[#DC2626] focus:ring-[#DC2626]/20"}`}
                             />
-                            {fieldErrors.quickCategoryName && <span className="text-red-500 text-[10px] font-mono mt-0.5 block">{fieldErrors.quickCategoryName}</span>}
+                            {fieldErrors.quickCategoryName && (
+                              <span className="text-red-500 text-[10px] font-mono mt-0.5 block">
+                                {fieldErrors.quickCategoryName}
+                              </span>
+                            )}
                           </div>
                           <div>
                             <label className="text-[10px] font-mono text-[#71717A] flex items-center justify-between mb-1 tracking-wider">
                               <span>Description</span>
-                              <span className="text-[9px] text-[#A1A1AA] tracking-normal normal-case italic">Optional</span>
+                              <span className="text-[9px] text-[#A1A1AA] tracking-normal normal-case italic">
+                                Optional
+                              </span>
                             </label>
                             <input
                               type="text"
                               value={quickCategoryDescription}
-                              onChange={(e) => setQuickCategoryDescription(e.target.value)}
+                              onChange={(e) =>
+                                setQuickCategoryDescription(e.target.value)
+                              }
                               className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
-                              placeholder="Brief description"
                             />
                           </div>
                         </div>
@@ -853,7 +886,9 @@ export function Assets() {
                             disabled={quickCategorySubmitting}
                             className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white text-[10px] font-mono font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                           >
-                            {quickCategorySubmitting ? 'Saving...' : 'Add & Select'}
+                            {quickCategorySubmitting
+                              ? "Saving..."
+                              : "Add & Select"}
                           </button>
                         </div>
                       </div>

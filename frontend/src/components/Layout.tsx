@@ -125,7 +125,8 @@ export function Layout() {
   const [pendingCount, setPendingCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const saved = localStorage.getItem('sidebarOpen');
-    return saved !== null ? saved === 'true' : true;
+    if (saved === null) return true;
+    return saved === 'true';
   });
 
   const toggleSidebar = () => {

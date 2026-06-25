@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // silently ignore
     }
     localStorage.removeItem('token');
+    localStorage.setItem('sidebarOpen', 'true');
     setToken(null);
     setUser(null);
     window.location.href = '/login';

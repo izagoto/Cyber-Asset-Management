@@ -4,7 +4,7 @@ import api from '../api/axios';
 import {
   Database, ArrowLeftRight, Clock,
   ClipboardList, CheckCircle, Wrench,
-  Activity, List, Zap
+  Activity, List, Zap, AlertTriangle
 } from 'lucide-react';
 
 function KPICard({
@@ -103,6 +103,20 @@ export function Dashboard() {
           color="#F59E0B" 
         />
       </div>
+
+      {/* Overdue Alert Banner */}
+      {stats?.overdue_loans > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <AlertTriangle size={20} className="text-red-600 shrink-0" />
+          <div className="flex-1">
+            <div className="text-sm font-bold text-red-700">Attention Required: {stats.overdue_loans} Overdue Asset{stats.overdue_loans > 1 ? 's' : ''}</div>
+            <div className="text-xs text-red-600 mt-0.5">Some borrowed assets have passed their return deadline. Please review and follow up immediately.</div>
+          </div>
+          <Link to="/loans?tab=overdue" className="text-xs font-bold text-red-700 hover:text-red-800 bg-white px-3 py-1.5 rounded-lg border border-red-200 transition-colors">
+            View Details
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Recent Transactions */}

@@ -6,13 +6,16 @@
 
 ## 🚀 Fitur Utama (Implemented)
 
-1. **Manajemen Inventaris Aset**: CRUD Aset lengkap (Admin) dengan data kategori, deskripsi, nomor seri unik, status dinamis (`AVAILABLE`, `BORROWED`, `MAINTENANCE`, `LOST`), serta ekspor data ke file CSV.
-2. **Manajemen Pengguna (User Management)**: CRUD data pengguna (Admin/Supervisor/Staff) untuk Role-Based Access Control lengkap dengan informasi divisi kerja, email, password terenkripsi, dan kontak telepon.
-3. **Dashboard Real-time & KPI**: Tampilan ringkasan statistik aset (total aset, peminjaman aktif, antrean persetujuan, overdue) beserta diagram persentase status aset dalam bentuk progress bar modern.
-4. **Alur Pengajuan Peminjaman Interaktif**: Wizard multi-step (3 langkah) interaktif untuk memudahkan pengisian data peminjam, pemilihan perangkat yang tersedia, tanggal pinjam & kembali (dilengkapi _custom date picker_), dan review sebelum submit.
-5. **Persetujuan & Pengembalian Aset (Admin Board)**: Antrean persetujuan (Approval Queue) bagi Admin untuk memproses pengajuan peminjaman (Approve/Reject), serta tabel peminjaman aktif untuk mencatat pengembalian (_Check-In_) secara instan.
-6. **Deteksi & Peringatan Terlambat (Overdue)**: Otomatisasi pendeteksian aset yang terlambat dikembalikan dengan visualisasi kartu peringatan merah menyala pada dashboard Admin.
-7. **Sistem Pencarian & Filter Kustom (Premium UI)**: Komponen _custom dropdown_ interaktif dengan filter kategori checkbox, kustomisasi jumlah baris data per halaman (entries limit), dan pencarian instan pada tabel aset, user, dan peminjaman.
+1. **Manajemen Inventaris Aset**: CRUD Aset lengkap (Admin) dengan data kategori, deskripsi, nomor seri unik, status dinamis (`AVAILABLE`, `BORROWED`, `MAINTENANCE`, `LOST`, `MISSING`), serta ekspor data ke file CSV.
+2. **Manajemen Kategori**: CRUD kategori aset (Admin) untuk pengelompokan aset dengan status aktif/tidak aktif.
+3. **Manajemen Pengguna (User Management)**: CRUD data pengguna (Admin/Supervisor/Staff) untuk Role-Based Access Control lengkap dengan informasi divisi kerja, email, password terenkripsi, dan kontak telepon.
+4. **Manajemen Peminjam (Borrower Management)**: CRUD data peminjam untuk mencatat personal yang meminjam aset.
+5. **Dashboard Real-time & KPI**: Tampilan ringkasan statistik aset (total aset, peminjaman aktif, antrean persetujuan, overdue) beserta diagram persentase status aset dalam bentuk progress bar modern.
+6. **Alur Pengajuan Peminjaman Interaktif**: Wizard multi-step (3 langkah) interaktif untuk memudahkan pengisian data peminjam, pemilihan perangkat yang tersedia, tanggal pinjam & kembali.
+7. **Persetujuan & Pengembalian Aset (Admin Board)**: Antrean persetujuan (Approval Queue) bagi Admin untuk memproses pengajuan peminjaman (Approve/Reject), serta tabel peminjaman aktif untuk mencatat pengembalian (_Check-In_) secara instan.
+8. **Deteksi & Peringatan Terlambat (Overdue)**: Otomatisasi pendeteksian aset yang terlambat dikembalikan dengan visualisasi kartu peringatan merah menyala pada dashboard Admin.
+9. **Sistem Pencarian & Filter Kustom (Premium UI)**: Komponen _custom dropdown_ interaktif dengan filter kategori checkbox, kustomisasi jumlah baris data per halaman (entries limit), dan pencarian instan pada tabel aset, user, dan peminjaman.
+10. **Badge Notifikasi Dinamis**: Badge menu dengan warna yang disesuaikan (hijau=available, biru=borrowed, kuning=maintenance, merah=overdue).
 
 ---
 
@@ -32,8 +35,8 @@ Sistem ini menggunakan arsitektur **Client-Server** dengan pembagian teknologi b
 ### Frontend
 
 - **Core**: React 19 (TypeScript) dengan bundler **Vite 8**.
-- **UI & Styling**: Vanilla CSS & Tailwind CSS (v4) untuk desain antarmuka modern, gelap/terang terpadu.
-- **Library UI**: Mantine Core (Hooks & Form Helpers), Lucide React (Icons).
+- **UI & Styling**: Tailwind CSS (v4) untuk desain antarmuka modern dark/light theme.
+- **Icons**: Lucide React.
 
 ---
 
@@ -127,6 +130,15 @@ Pastikan Anda memiliki hal-hal berikut terinstal di sistem Anda:
 
 4. **Akses Aplikasi**:
    Buka browser dan buka alamat: `http://localhost:5173`
+
+---
+
+## 📱 Responsive Design
+
+Aplikasi ini fully responsive dan dioptimalkan untuk semua perangkat:
+- **Desktop**: Layout penuh dengan sidebar terbuka
+- **Laptop**: Sidebar dapat di-collapse untuk ruang kerja lebih
+- **Tablet & Mobile**: Sidebar auto-collapse, elemen berurutan vertikal, touch-friendly buttons
 
 ---
 
