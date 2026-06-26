@@ -274,7 +274,7 @@ export function Loans() {
 
       await api.post('/loans', { 
         asset_id: parseInt(selectedAssetId), 
-        user_id: borrowerId,
+        borrower_id: borrowerId,
         purpose: serializedPurpose,
         quantity: quantity
       });

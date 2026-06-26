@@ -827,7 +827,7 @@ export function Assets() {
                     </button>
 
                     {showQuickAddCategory && (
-                      <div className="p-4 bg-white border border-[#E4E4E7] rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-4 bg-white border border-[#E4E4E7] rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2 duration-200 w-full sm:max-w-2xl">
                         <div className="text-[10px] font-mono text-[#71717A] uppercase tracking-wider font-bold">
                           Add New Category
                         </div>
@@ -862,12 +862,12 @@ export function Assets() {
                                 Optional
                               </span>
                             </label>
-                            <input
-                              type="text"
+                            <textarea
                               value={quickCategoryDescription}
                               onChange={(e) =>
                                 setQuickCategoryDescription(e.target.value)
                               }
+                              rows={3}
                               className="w-full bg-[#FFFFFF] border border-[#E4E4E7] rounded-lg px-3 py-2 text-xs font-mono text-[#18181B] focus:outline-none focus:border-[#DC2626] focus:ring-2 focus:ring-[#DC2626]/20 transition-all"
                             />
                           </div>

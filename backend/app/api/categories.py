@@ -88,6 +88,8 @@ def update_category(
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     
+    old_name = category.name  # Store old name before update
+    
     update_data = category_in.model_dump(exclude_unset=True)
     if "name" in update_data and update_data["name"]:
         normalized_name = normalize_category_name(update_data["name"])
@@ -103,6 +105,17 @@ def update_category(
     
     db.commit()
     db.refresh(category)
+    
+    # Update all assets that reference this category name
+    from app.models.asset import Asset
+    new_name = category.name
+    if old_name != new_name:
+        assets_to_update = db.query(Asset).filter(Asset.category == old_name).all()
+        for asset in assets_to_update:
+            asset.category = new_name
+        if assets_to_update:
+            db.commit()
+    
     return StandardResponse(status="success", message="Category updated", data=category)
 
 

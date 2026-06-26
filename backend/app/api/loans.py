@@ -66,6 +66,7 @@ def update_loan_status(
     """Update loan status manually (Admin for active/reject, borrower/admin for return)"""
     from app.models.loan import Loan, LoanStatus
     from app.models.asset import Asset, AssetStatus
+    from app.models.borrower import Borrower
     from datetime import datetime, timezone
     
     loan = db.query(Loan).filter(Loan.id == loan_id).first()
@@ -79,7 +80,7 @@ def update_loan_status(
         if current_user.role not in ["ADMIN", "SUPERVISOR"]:
             raise HTTPException(status_code=403, detail="Forbidden")
     elif status_val == "RETURNED":
-        if current_user.role not in ["ADMIN", "SUPERVISOR"] and loan.user_id != current_user.id:
+        if current_user.role not in ["ADMIN", "SUPERVISOR"] and loan.borrower_id not in [b.id for b in db.query(Borrower).filter(Borrower.email == current_user.email).all()]:
             raise HTTPException(status_code=403, detail="Forbidden")
     else:
         raise HTTPException(status_code=400, detail="Invalid status update")

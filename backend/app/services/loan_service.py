@@ -26,12 +26,12 @@ class LoanService:
         if available_qty < loan_in.quantity:
             raise HTTPException(status_code=400, detail=f"Insufficient quantity available. Only {available_qty} left.")
         
-        # Use provided user_id (borrower) or default to current user
-        borrower_id = loan_in.user_id if loan_in.user_id is not None else current_user_id
+# Use provided borrower_id or default to current user
+        borrower_id = loan_in.borrower_id if loan_in.borrower_id is not None else current_user_id
             
         db_loan = Loan(
             asset_id=loan_in.asset_id,
-            user_id=borrower_id,
+            borrower_id=borrower_id,
             notes=loan_in.notes,
             purpose=loan_in.purpose,
             status=LoanStatus.REQUESTED.value,
@@ -41,20 +41,20 @@ class LoanService:
         db.commit()
         db.refresh(db_loan)
         
-        # Reload with user
-        stmt = select(Loan).where(Loan.id == db_loan.id).options(selectinload(Loan.user))
+        # Reload with borrower
+        stmt = select(Loan).where(Loan.id == db_loan.id).options(selectinload(Loan.borrower))
         result = db.execute(stmt)
         return result.scalar_one_or_none()
 
     @staticmethod
     def get_user_loans(db: Session, user_id: int):
-        stmt = select(Loan).where(Loan.user_id == user_id).options(selectinload(Loan.user))
+        stmt = select(Loan).where(Loan.borrower_id == user_id).options(selectinload(Loan.borrower))
         result = db.execute(stmt)
         return result.scalars().all()
 
     @staticmethod
     def get_all_loans(db: Session):
-        stmt = select(Loan).options(selectinload(Loan.user))
+        stmt = select(Loan).options(selectinload(Loan.borrower))
         result = db.execute(stmt)
         return result.scalars().all()
 

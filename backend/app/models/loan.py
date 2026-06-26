@@ -23,7 +23,7 @@ class Loan(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     asset_id: Mapped[int] = mapped_column(Integer, ForeignKey("assets.id"), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    borrower_id: Mapped[int] = mapped_column(Integer, ForeignKey("borrowers.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default=LoanStatus.REQUESTED.value)
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     
@@ -35,4 +35,4 @@ class Loan(Base):
     returned_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     asset = relationship("Asset", back_populates="loans")
-    user = relationship("User", backref="loans")
+    borrower = relationship("Borrower", backref="loans")
